@@ -98,8 +98,8 @@ def show_result(opts, output):
 
     if hasattr(output, 'tied_winners'):
         print('Tied winner{}s:'.format(set_suffix))
-        for winners in output.tied_winners:
-            print('  {}'.format(', '.join(sorted(winners))))
+        for winners in sorted(map(sorted, output.tied_winners)):
+            print('  {}'.format(', '.join(winners)))
         if opts.break_ties:
             print('warning: Breaking tie randomly.')
             print()
