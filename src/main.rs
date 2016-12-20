@@ -19,11 +19,12 @@ fn main() {
     let program = &args[0];
 
     let mut opts = Options::new();
-    opts.optflag("h", "help", "show this help message and exit");
     opts.optopt("w",
                 "winners",
                 "elect an N-winner committee (default: 1)",
                 "N");
+    opts.optflag("", "help", "show this help message and exit");
+    opts.optflag("", "version", "show the program version and exit");
     let matches = match opts.parse(&args[1..]) {
         Err(fail) => {
             writeln!(&mut stderr(), "{}: {}", program, fail).unwrap();
@@ -51,8 +52,13 @@ preferred.
 Pass - to read ballots from stdin.",
         program));
 
-    if matches.opt_present("h") {
+    if matches.opt_present("help") {
         print!("{}", usage());
+        return;
+    }
+
+    if matches.opt_present("version") {
+        println!("elect {}", env!("CARGO_PKG_VERSION"));
         return;
     }
 
