@@ -1,0 +1,9 @@
+language: rust
+addons:
+  apt:
+    packages:
+    - libgmp-dev
+script:
+- set -e
+- cargo build --verbose -p vote -p elect
+- cargo test --verbose -p vote -p elect
