@@ -1,0 +1,13 @@
+[package]
+name = "elect"
+version = "0.1.0"
+authors = ["Anders Kaseorg <andersk@mit.edu>"]
+license = "MIT"
+
+[dependencies]
+getopts = "0.2"
+rust-gmp = "0.3"
+vote = { path = "vote", version = "0.1" }
+
+[workspace]
+members = ["vote"]

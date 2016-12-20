@@ -1,0 +1,8 @@
+[package]
+name = "vote"
+version = "0.1.0"
+authors = ["Anders Kaseorg <andersk@mit.edu>"]
+license = "MIT"
+
+[dependencies]
+rust-gmp = "0.3"
