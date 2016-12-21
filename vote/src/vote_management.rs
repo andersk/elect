@@ -17,10 +17,10 @@ struct CandidateState {
     count: i32,
 }
 
-pub fn strength<Ballot>(num_candidates: usize, ballots: &[(Ballot, Mpq)]) -> Mpq
+pub fn strength<Ballot>(num_seats: usize, ballots: &[(Ballot, Mpq)]) -> Mpq
     where Ballot: Borrow<[bool]>
 {
-    let candidate_ballots = &mut vec![Vec::new(); num_candidates][..];
+    let candidate_ballots = &mut vec![Vec::new(); num_seats][..];
     for (b, &(ref cs, _)) in ballots.iter().enumerate() {
         for (c, &s) in cs.borrow().iter().enumerate() {
             if s {
@@ -33,7 +33,7 @@ pub fn strength<Ballot>(num_candidates: usize, ballots: &[(Ballot, Mpq)]) -> Mpq
             BallotState {
                 visited: false,
                 prev: !0,
-                edge_flow: vec![Mpq::zero(); num_candidates].into_boxed_slice(),
+                edge_flow: vec![Mpq::zero(); num_seats].into_boxed_slice(),
                 sink_flow: w.clone(),
                 count: 0,
             }
@@ -42,7 +42,7 @@ pub fn strength<Ballot>(num_candidates: usize, ballots: &[(Ballot, Mpq)]) -> Mpq
     let candidate_states = &mut vec![CandidateState {
         prev: !0,
         count: 0,
-    }; num_candidates][..];
+    }; num_seats][..];
 
     let mut total_flow = Mpq::zero();
     let mut queue = VecDeque::new();
@@ -69,7 +69,7 @@ pub fn strength<Ballot>(num_candidates: usize, ballots: &[(Ballot, Mpq)]) -> Mpq
                         }
                         candidate_states[c].prev = b;
                         found.push(c);
-                        if found.len() == num_candidates {
+                        if found.len() == num_seats {
                             break 'search;
                         }
                         for &b1 in &candidate_ballots[c] {
@@ -98,7 +98,7 @@ pub fn strength<Ballot>(num_candidates: usize, ballots: &[(Ballot, Mpq)]) -> Mpq
                 candidate_states[c1].count += count;
             }
         }
-        debug_assert_eq!(sunk, num_candidates as i32);
+        debug_assert_eq!(sunk, num_seats as i32);
 
         let flow = found.iter()
             .map(|&c| {
