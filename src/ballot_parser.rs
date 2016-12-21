@@ -14,6 +14,13 @@ pub struct BallotParser {
     pub ballots: Vec<(Box<[Box<[usize]>]>, Mpq)>,
 }
 
+fn parse_rational(s: &str) -> Result<Mpq, ()> {
+    match s.find('/') {
+        Some(i) => Ok(Mpq::ratio(&Mpz::from_str(&s[..i])?, &Mpz::from_str(&s[i + 1..])?)),
+        None => Ok(Mpq::ratio(&Mpz::from_str(s)?, &Mpz::one())),
+    }
+}
+
 impl BallotParser {
     fn new() -> BallotParser {
         return BallotParser {
@@ -57,11 +64,9 @@ impl BallotParser {
         }
 
         let (w, groups) = match line.find(':') {
-            Some(i) => {
-                (Mpq::ratio(&Mpz::from_str(&line[..i]).map_err(|()|
-                                                               "cannot parse ballot weight"
-                )?, &Mpz::one()), &line[i + 1..])
-            }
+            Some(i) =>
+                (parse_rational(&line[..i]).map_err(|()| "cannot parse ballot weight")?,
+                 &line[i + 1..]),
             None => (Mpq::one(), &line[..]),
         };
 
