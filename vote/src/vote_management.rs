@@ -4,7 +4,6 @@ use std::collections::VecDeque;
 use std::vec::Vec;
 
 struct BallotState {
-    visited: bool,
     prev: usize,
     edge_flow: Box<[Mpq]>,
     count: i32,
@@ -30,7 +29,6 @@ pub fn strength<Ballot>(num_seats: usize, ballots: &[(Ballot, Mpq)]) -> Mpq
             let mut edge_flow = vec![Mpq::zero(); 1 + cs.borrow().len()].into_boxed_slice();
             edge_flow[0] = w.clone();
             BallotState {
-                visited: false,
                 prev: !0,
                 edge_flow: edge_flow,
                 count: 0,
@@ -48,7 +46,6 @@ pub fn strength<Ballot>(num_seats: usize, ballots: &[(Ballot, Mpq)]) -> Mpq
     loop {
         for (b, bs) in ballot_states.iter_mut().enumerate() {
             if !bs.edge_flow[0].is_zero() {
-                bs.visited = true;
                 bs.prev = 0;
                 queue.push_back(b);
             }
@@ -73,10 +70,9 @@ pub fn strength<Ballot>(num_seats: usize, ballots: &[(Ballot, Mpq)]) -> Mpq
                         }
                         for &(b1, i1) in &candidate_ballots[c] {
                             if ballot_states[b1].edge_flow[i1 + 1].is_zero() ||
-                               ballot_states[b1].visited {
+                               ballot_states[b1].prev != !0 {
                                 continue;
                             }
-                            ballot_states[b1].visited = true;
                             ballot_states[b1].prev = i1 + 1;
                             queue.push_back(b1);
                         }
@@ -128,7 +124,6 @@ pub fn strength<Ballot>(num_seats: usize, ballots: &[(Ballot, Mpq)]) -> Mpq
         }
 
         for bs in &mut *ballot_states {
-            bs.visited = false;
             bs.prev = !0;
             debug_assert_eq!(bs.count, 0);
         }
