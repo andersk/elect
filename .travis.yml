@@ -1,9 +1,19 @@
 language: rust
+cache: cargo
 addons:
   apt:
     packages:
     - libgmp-dev
+before_script:
+- set -e
+- rustfmt_version=$(~/.cargo/bin/rustfmt --version) && case "$(cargo search rustfmt)" in
+      "rustfmt (${rustfmt_version%% *})"*) true;;
+      *) false;;
+  esac || cargo install --force rustfmt
 script:
 - set -e
+- export PATH=~/.cargo/bin:$PATH
 - cargo build --verbose -p vote -p elect
 - cargo test --verbose -p vote -p elect
+- cargo fmt -- --write-mode=diff
+- (cd vote; cargo fmt -- --write-mode=diff)
