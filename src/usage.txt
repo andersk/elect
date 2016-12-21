@@ -1,0 +1,16 @@
+Usage: elect [-w N|--winners N] BALLOTFILE...
+
+Each BALLOTFILE has one ballot description per line, with candidate
+names separated by > or = to indicate strict and equal preference.
+Prefixing a ballot with WEIGHT: makes WEIGHT copies of it.
+
+  Chocolate > Vanilla > Strawberry > Cookie Dough
+  Cookie Dough > Chocolate > Strawberry
+  2: Strawberry = Chocolate > Vanilla
+
+Candidate names are case-sensitive, and may include whitespace but may
+not include > or =.  Whitespace around operators is ignored.
+Candidates not listed in a ballot will be treated as tied for least
+preferred.
+
+Pass - to read ballots from stdin.

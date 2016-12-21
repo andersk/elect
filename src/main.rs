@@ -14,6 +14,8 @@ use std::process::exit;
 use std::str::FromStr;
 use vote::schulze_stv::schulze_stv;
 
+const USAGE: &'static str = include_str!("usage.txt");
+
 fn main() {
     let args = env::args().collect::<Vec<_>>();
     let program = &args[0];
@@ -33,27 +35,8 @@ fn main() {
         Ok(matches) => matches,
     };
 
-    let usage = || opts.usage(&format!(
-        "Usage: {} [-w N|--winners N] BALLOTFILE...
-
-Each BALLOTFILE has one ballot description per line, with candidate
-names separated by > or = to indicate strict and equal preference.
-Prefixing a ballot with WEIGHT: makes WEIGHT copies of it.
-
-  Chocolate > Vanilla > Strawberry > Cookie Dough
-  Cookie Dough > Chocolate > Strawberry
-  2: Strawberry = Chocolate > Vanilla
-
-Candidate names are case-sensitive, and may include whitespace but may
-not include > or =.  Whitespace around operators is ignored.
-Candidates not listed in a ballot will be treated as tied for least
-preferred.
-
-Pass - to read ballots from stdin.",
-        program));
-
     if matches.opt_present("help") {
-        print!("{}", usage());
+        print!("{}", opts.usage(USAGE));
         return;
     }
 
@@ -63,7 +46,7 @@ Pass - to read ballots from stdin.",
     }
 
     if matches.free.is_empty() {
-        write!(&mut stderr(), "{}", usage()).unwrap();
+        write!(&mut stderr(), "{}", opts.usage(USAGE)).unwrap();
         exit(1)
     }
 
