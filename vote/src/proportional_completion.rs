@@ -12,7 +12,7 @@ fn count_equal(a: &[Ordering]) -> usize {
 }
 
 pub fn proportional_completion<'a, Orderings, Patterns>(patterns: Patterns)
-                                                        -> Box<[(Box<[bool]>, Mpq)]>
+                                                        -> Box<[(Box<[usize]>, Mpq)]>
     where Orderings: Iterator<Item = Ordering>,
           Patterns: Iterator<Item = (Orderings, &'a Mpq)>
 {
@@ -73,7 +73,12 @@ pub fn proportional_completion<'a, Orderings, Patterns>(patterns: Patterns)
         .unwrap()
         .iter()
         .map(|(a, w)| {
-            (a.iter().map(|&o| o == Ordering::Greater).collect::<Vec<_>>().into_boxed_slice(),
+            (a.iter()
+                 .enumerate()
+                 .filter(|&(_, &o)| o == Ordering::Greater)
+                 .map(|(c, _)| c)
+                 .collect::<Vec<_>>()
+                 .into_boxed_slice(),
              w.clone())
         })
         .collect::<Vec<_>>()
@@ -157,7 +162,9 @@ mod tests {
         let expected = expected.iter()
             .map(|&(ref a, ref w)| {
                 (a.iter()
-                     .map(|&n| n == 1)
+                     .enumerate()
+                     .filter(|&(_, &n)| n == 1)
+                     .map(|(i, _)| i)
                      .collect::<Vec<_>>()
                      .into_boxed_slice(),
                  w.clone())

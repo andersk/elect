@@ -18,14 +18,12 @@ struct CandidateState {
 }
 
 pub fn strength<Ballot>(num_seats: usize, ballots: &[(Ballot, Mpq)]) -> Mpq
-    where Ballot: Borrow<[bool]>
+    where Ballot: Borrow<[usize]>
 {
     let candidate_ballots = &mut vec![Vec::new(); num_seats][..];
     for (b, &(ref cs, _)) in ballots.iter().enumerate() {
-        for (c, &s) in cs.borrow().iter().enumerate() {
-            if s {
-                candidate_ballots[c].push(b);
-            }
+        for &c in cs.borrow() {
+            candidate_ballots[c].push(b);
         }
     }
     let ballot_states = &mut ballots.iter()
@@ -63,8 +61,8 @@ pub fn strength<Ballot>(num_seats: usize, ballots: &[(Ballot, Mpq)]) -> Mpq
                 }
                 Some(b) => {
                     let (ref cs, _) = ballots[b];
-                    for (c, &s) in cs.borrow().iter().enumerate() {
-                        if !s || candidate_states[c].prev != !0 {
+                    for &c in cs.borrow() {
+                        if candidate_states[c].prev != !0 {
                             continue;
                         }
                         candidate_states[c].prev = b;
@@ -153,41 +151,37 @@ mod tests {
     #[test]
     fn test_strength_1() {
         // Wikipedia
-        let ballots: &[(&[bool], Mpq)] = &[(&[true, false], Q(12)),
-                                           (&[false, true], Q(0)),
-                                           (&[true, true], Q(51)),
-                                           (&[false, false], Q(27))];
+        let ballots: &[(&[usize], Mpq)] =
+            &[(&[0], Q(12)), (&[1], Q(0)), (&[0, 1], Q(51)), (&[], Q(27))];
         assert_eq!(strength(2, ballots), Q(63) / Q(2));
     }
 
     #[test]
     fn test_strength_2() {
         // Wikipedia
-        let ballots: &[(&[bool], Mpq)] =
-            &[(&[true, false], Q(38)), (&[false, true], Q(27)), (&[true, true], Q(12))];
+        let ballots: &[(&[usize], Mpq)] = &[(&[0], Q(38)), (&[1], Q(27)), (&[0, 1], Q(12))];
         assert_eq!(strength(2, ballots), Q(77) / Q(2));
     }
 
     #[test]
     fn test_strength_3() {
         // Schulze’s calcul02.pdf
-        let ballots: &[(&[bool], Mpq)] =
-            &[(&[true, true, true, true], Q(36_597383) / Q(1_000000)),
-              (&[true, true, true, false], Q(5_481150) / Q(1_000000)),
-              (&[true, true, false, true], Q(13_279131) / Q(1_000000)),
-              (&[true, true, false, false], Q(4_859413) / Q(1_000000)),
-              (&[true, false, true, true], Q(35_425375) / Q(1_000000)),
-              (&[true, false, true, false], Q(5_490934) / Q(1_000000)),
-              (&[true, false, false, true], Q(22_855333) / Q(1_000000)),
-              (&[true, false, false, false], Q(19_835570) / Q(1_000000)),
-              (&[false, true, true, true], Q(22_928716) / Q(1_000000)),
-              (&[false, true, true, false], Q(5_538309) / Q(1_000000)),
-              (&[false, true, false, true], Q(13_130227) / Q(1_000000)),
-              (&[false, true, false, false], Q(6_056291) / Q(1_000000)),
-              (&[false, false, true, true], Q(23_992772) / Q(1_000000)),
-              (&[false, false, true, false], Q(16_699207) / Q(1_000000)),
-              (&[false, false, false, true], Q(98_165759) / Q(1_000000)),
-              (&[false, false, false, false], Q(129_664430) / Q(1_000000))];
+        let ballots: &[(&[usize], Mpq)] = &[(&[0, 1, 2, 3], Q(36_597383) / Q(1_000000)),
+                                            (&[0, 1, 2], Q(5_481150) / Q(1_000000)),
+                                            (&[0, 1, 3], Q(13_279131) / Q(1_000000)),
+                                            (&[0, 1], Q(4_859413) / Q(1_000000)),
+                                            (&[0, 2, 3], Q(35_425375) / Q(1_000000)),
+                                            (&[0, 2], Q(5_490934) / Q(1_000000)),
+                                            (&[0, 3], Q(22_855333) / Q(1_000000)),
+                                            (&[0], Q(19_835570) / Q(1_000000)),
+                                            (&[1, 2, 3], Q(22_928716) / Q(1_000000)),
+                                            (&[1, 2], Q(5_538309) / Q(1_000000)),
+                                            (&[1, 3], Q(13_130227) / Q(1_000000)),
+                                            (&[1], Q(6_056291) / Q(1_000000)),
+                                            (&[2, 3], Q(23_992772) / Q(1_000000)),
+                                            (&[2], Q(16_699207) / Q(1_000000)),
+                                            (&[3], Q(98_165759) / Q(1_000000)),
+                                            (&[], Q(129_664430) / Q(1_000000))];
         assert_eq!(strength(4, ballots), Q(77_389937) / Q(1_000000));
     }
 }
