@@ -62,7 +62,7 @@ fn main_result() -> Result<(), String> {
     }
     println!("");
 
-    let total_weight = bp.ballots.iter().map(|&(_, ref w)| w).fold(Mpq::zero(), |acc, x| acc + x);
+    let total_weight = bp.ballots.iter().fold(Mpq::zero(), |acc, &(_, ref w)| acc + w);
     println!("Ballots ({:?}):", total_weight);
     for &(ref groups, ref w) in bp.ballots.iter() {
         println!("  {:?}: {}",
