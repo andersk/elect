@@ -7,13 +7,12 @@ struct BallotState {
     visited: bool,
     prev: usize,
     edge_flow: Box<[Mpq]>,
-    sink_flow: Mpq,
     count: i32,
 }
 
 #[derive(Clone)]
 struct CandidateState {
-    prev: usize,
+    prev: (usize, usize),
     count: i32,
 }
 
@@ -22,23 +21,24 @@ pub fn strength<Ballot>(num_seats: usize, ballots: &[(Ballot, Mpq)]) -> Mpq
 {
     let candidate_ballots = &mut vec![Vec::new(); num_seats][..];
     for (b, &(ref cs, _)) in ballots.iter().enumerate() {
-        for &c in cs.borrow() {
-            candidate_ballots[c].push(b);
+        for (i, &c) in cs.borrow().iter().enumerate() {
+            candidate_ballots[c].push((b, i));
         }
     }
     let ballot_states = &mut ballots.iter()
-        .map(|&(_, ref w)| {
+        .map(|&(ref cs, ref w)| {
+            let mut edge_flow = vec![Mpq::zero(); 1 + cs.borrow().len()].into_boxed_slice();
+            edge_flow[0] = w.clone();
             BallotState {
                 visited: false,
                 prev: !0,
-                edge_flow: vec![Mpq::zero(); num_seats].into_boxed_slice(),
-                sink_flow: w.clone(),
+                edge_flow: edge_flow,
                 count: 0,
             }
         })
         .collect::<Vec<_>>()[..];
     let candidate_states = &mut vec![CandidateState {
-        prev: !0,
+        prev: (!0, !0),
         count: 0,
     }; num_seats][..];
 
@@ -47,8 +47,9 @@ pub fn strength<Ballot>(num_seats: usize, ballots: &[(Ballot, Mpq)]) -> Mpq
 
     loop {
         for (b, bs) in ballot_states.iter_mut().enumerate() {
-            if !bs.sink_flow.is_zero() {
+            if !bs.edge_flow[0].is_zero() {
                 bs.visited = true;
+                bs.prev = 0;
                 queue.push_back(b);
             }
         }
@@ -61,22 +62,22 @@ pub fn strength<Ballot>(num_seats: usize, ballots: &[(Ballot, Mpq)]) -> Mpq
                 }
                 Some(b) => {
                     let (ref cs, _) = ballots[b];
-                    for &c in cs.borrow() {
-                        if candidate_states[c].prev != !0 {
+                    for (i, &c) in cs.borrow().iter().enumerate() {
+                        if candidate_states[c].prev != (!0, !0) {
                             continue;
                         }
-                        candidate_states[c].prev = b;
+                        candidate_states[c].prev = (b, i);
                         found.push(c);
                         if found.len() == num_seats {
                             break 'search;
                         }
-                        for &b1 in &candidate_ballots[c] {
-                            if ballot_states[b1].edge_flow[c].is_zero() ||
+                        for &(b1, i1) in &candidate_ballots[c] {
+                            if ballot_states[b1].edge_flow[i1 + 1].is_zero() ||
                                ballot_states[b1].visited {
                                 continue;
                             }
                             ballot_states[b1].visited = true;
-                            ballot_states[b1].prev = c;
+                            ballot_states[b1].prev = i1 + 1;
                             queue.push_back(b1);
                         }
                     }
@@ -86,27 +87,24 @@ pub fn strength<Ballot>(num_seats: usize, ballots: &[(Ballot, Mpq)]) -> Mpq
 
         let mut sunk = 0;
         for &c in found.iter().rev() {
-            let b = candidate_states[c].prev;
+            let (b, _) = candidate_states[c].prev;
             let count = candidate_states[c].count + 1;
             ballot_states[b].count += count;
-            let c1 = ballot_states[b].prev;
-            if c1 == !0 {
+            let i1 = ballot_states[b].prev;
+            if i1 == 0 {
                 sunk += count;
             } else {
-                candidate_states[c1].count += count;
+                let (ref cs, _) = ballots[b];
+                candidate_states[cs.borrow()[i1 - 1]].count += count;
             }
         }
         debug_assert_eq!(sunk, num_seats as i32);
 
         let flow = found.iter()
             .map(|&c| {
-                let b = candidate_states[c].prev;
-                let c1 = ballot_states[b].prev;
-                (if c1 == !0 {
-                    &ballot_states[b].sink_flow
-                } else {
-                    &ballot_states[b].edge_flow[c1]
-                } / Mpq::from(ballot_states[b].count as i64))
+                let (b, _) = candidate_states[c].prev;
+                &ballot_states[b].edge_flow[ballot_states[b].prev] /
+                Mpq::from(ballot_states[b].count as i64)
             })
             .min()
             .unwrap();
@@ -114,21 +112,18 @@ pub fn strength<Ballot>(num_seats: usize, ballots: &[(Ballot, Mpq)]) -> Mpq
         total_flow = total_flow + &flow;
 
         for c in found {
-            let b = candidate_states[c].prev;
-            let c1 = ballot_states[b].prev;
-            ballot_states[b].edge_flow[c] = &ballot_states[b].edge_flow[c] +
-                                            &flow * Mpq::from(candidate_states[c].count as i64 + 1);
+            let (b, i) = candidate_states[c].prev;
+            {
+                let edge_flow = &mut ballot_states[b].edge_flow[i + 1];
+                *edge_flow = &*edge_flow + &flow * Mpq::from(candidate_states[c].count as i64 + 1);
+            }
             if ballot_states[b].count != 0 {
-                let edge_flow = if c1 == !0 {
-                    &mut ballot_states[b].sink_flow
-                } else {
-                    &mut ballot_states[b].edge_flow[c1]
-                };
+                let edge_flow = &mut ballot_states[b].edge_flow[ballot_states[b].prev];
                 *edge_flow = &*edge_flow - &flow * Mpq::from(ballot_states[b].count as i64);
                 ballot_states[b].count = 0;
             }
 
-            candidate_states[c].prev = !0;
+            candidate_states[c].prev = (!0, !0);
             candidate_states[c].count = 0;
         }
 
