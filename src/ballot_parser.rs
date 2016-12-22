@@ -23,11 +23,11 @@ fn parse_rational(s: &str) -> Result<Mpq, ()> {
 
 impl BallotParser {
     fn new() -> BallotParser {
-        return BallotParser {
+        BallotParser {
             candidates: Vec::new(),
             candidate_index: HashMap::new(),
             ballots: Vec::new(),
-        };
+        }
     }
 
     fn parse_candidate(&mut self, name: &str) -> usize {

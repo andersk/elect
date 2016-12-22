@@ -43,7 +43,7 @@ fn search<Defeaters>(defeaters: &[Defeaters], state: &mut State, c: usize) -> Op
 
     match state.nodes[c] {
         Node::OnStack(index) if lowlink == index => {
-            state.schwartz.extend(&state.stack[index..]);
+            state.schwartz.extend_from_slice(&state.stack[index..]);
             for &c1 in &state.stack {
                 state.nodes[c1] = Node::Done;
             }
@@ -66,11 +66,11 @@ pub fn schwartz_set<Defeaters>(candidates: &[usize], defeaters: &[Defeaters]) ->
 
     for &c in candidates {
         if let Node::Unvisited = state.nodes[c] {
-            search(&defeaters, &mut state, c);
+            search(defeaters, &mut state, c);
         }
     }
 
-    return state.schwartz.into_boxed_slice();
+    state.schwartz.into_boxed_slice()
 }
 
 #[cfg(test)]

@@ -132,7 +132,7 @@ pub fn schulze_stv<Group, Groups>(num_candidates: usize,
                 continue;
             }
             for set1 in &*replacements(&set, opponent) {
-                let m1 = encode_combination(&binomial, &set1);
+                let m1 = encode_combination(&binomial, set1);
                 defeat_map.entry(&strengths[m][opponent])
                     .or_insert_with(Vec::new)
                     .push((m, m1));
