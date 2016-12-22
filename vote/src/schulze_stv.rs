@@ -96,7 +96,7 @@ fn all_strengths<Group, Groups>(num_candidates: usize,
                             })
                             .collect::<Vec<_>>();
                         let completed = proportional_completion(patterns.iter()
-                            .map(|&(ref a, &ref w)| (a.iter().cloned(), w)));
+                            .map(|&(ref a, w)| (a.iter().cloned(), w)));
                         strength(num_seats,
                                  &completed.iter()
                                      .map(|&(ref a, ref w)| (&**a, w.clone()))

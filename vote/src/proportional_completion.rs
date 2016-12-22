@@ -32,10 +32,9 @@ pub fn proportional_completion<'a, Orderings, Patterns>(patterns: Patterns)
         while let Some((a, w)) = tied.pop() {
             let mut replacements = HashMap::new();
             let mut total = Mpq::zero();
-            for (&ref a1, &ref w1) in
-                patterns_by_count.iter()
-                    .flat_map(|&ref it| it)
-                    .chain(tied.iter().map(|&(ref a1, ref w1)| (a1, w1))) {
+            for (a1, w1) in patterns_by_count.iter()
+                .flat_map(|it| it)
+                .chain(tied.iter().map(|&(ref a1, ref w1)| (a1, w1))) {
                 if a.iter()
                     .zip(a1.iter())
                     .any(|(&o, &o1)| o == Ordering::Equal && o1 != Ordering::Equal) {
@@ -61,7 +60,7 @@ pub fn proportional_completion<'a, Orderings, Patterns>(patterns: Patterns)
                 }
             } else {
                 let scale = w / total;
-                for (&ref a1, &ref w1) in &replacements {
+                for (a1, w1) in &replacements {
                     let e = patterns_by_count[count_equal(a1)]
                         .entry(a1.clone())
                         .or_insert_with(Mpq::zero);
@@ -73,7 +72,7 @@ pub fn proportional_completion<'a, Orderings, Patterns>(patterns: Patterns)
     patterns_by_count.pop()
         .unwrap()
         .iter()
-        .map(|(&ref a, &ref w)| {
+        .map(|(a, w)| {
             (a.iter().map(|&o| o == Ordering::Greater).collect::<Vec<_>>().into_boxed_slice(),
              w.clone())
         })
