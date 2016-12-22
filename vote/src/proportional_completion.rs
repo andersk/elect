@@ -1,88 +1,100 @@
 use gmp::mpq::Mpq;
-use std::borrow::Borrow;
-use std::collections::HashMap;
+use std::collections::btree_map::{BTreeMap, Entry as BEntry};
+use std::collections::hash_map::{HashMap, Entry as HEntry};
 use std::cmp::Ordering;
 use std::vec::Vec;
 
-fn is_equal(&o: &Ordering) -> bool {
-    o == Ordering::Equal
+fn encode_pattern(a: &[Ordering]) -> (usize, usize) {
+    a.iter().rev().fold((0, 0), |(eq, gt), &o| {
+        (eq << 1 | if o == Ordering::Equal { 1 } else { 0 },
+         gt << 1 | if o == Ordering::Greater { 1 } else { 0 })
+    })
 }
 
-fn count_equal(a: &[Ordering]) -> usize {
-    a.iter().cloned().filter(is_equal).count()
+fn decode_bits(mut gt: usize) -> Box<[usize]> {
+    let mut cs = Vec::new();
+    cs.reserve(gt.count_ones() as usize);
+    while gt != 0 {
+        let k = gt.trailing_zeros();
+        cs.push(k as usize);
+        gt &= !(1 << k);
+    }
+    cs.into_boxed_slice()
 }
 
 pub fn proportional_completion<'a, Patterns>(patterns: Patterns) -> Box<[(Box<[usize]>, Mpq)]>
     where Patterns: Iterator<Item = (&'a [Ordering], &'a Mpq)>
 {
-    let mut patterns_by_count = vec![HashMap::<Box<[Ordering]>, Mpq>::new()];
+    let mut pattern_map = BTreeMap::new();
+    let mut total = Mpq::zero();
     for (a, w) in patterns {
-        let t = count_equal(a);
-        if t >= patterns_by_count.len() {
-            patterns_by_count.resize(t + 1, HashMap::new());
-        }
-        let e = patterns_by_count[t]
-            .entry(a.to_vec().into_boxed_slice())
-            .or_insert_with(Mpq::zero);
-        *e = &*e + w;
-    }
-    while patterns_by_count.len() > 1 {
-        let mut tied = patterns_by_count.pop().unwrap();
-        let mut tied = tied.drain().collect::<Vec<_>>();
-        while let Some((a, w)) = tied.pop() {
-            let mut replacements = HashMap::new();
-            let mut total = Mpq::zero();
-            for (a1, w1) in patterns_by_count.iter()
-                .flat_map(|it| it)
-                .chain(tied.iter().map(|&(ref a1, ref w1)| (a1, w1))) {
-                if a.iter()
-                    .zip(a1.iter())
-                    .any(|(&o, &o1)| o == Ordering::Equal && o1 != Ordering::Equal) {
-                    let a2 = a.iter()
-                        .zip(a1.iter())
-                        .map(|(&o, &o1)| if o == Ordering::Equal { o1 } else { o })
-                        .collect::<Vec<_>>()
-                        .into_boxed_slice();
-                    let e = replacements.entry(a2).or_insert_with(Mpq::zero);
-                    *e = &*e + w1;
-                    total = total + w1;
+        if !w.is_zero() {
+            match pattern_map.entry(encode_pattern(a)) {
+                BEntry::Occupied(mut e) => {
+                    let w1 = e.get() + w;
+                    e.insert(w1);
+                }
+                BEntry::Vacant(e) => {
+                    e.insert(w.clone());
                 }
             }
-            if total.is_zero() {
-                let scale = w / Mpq::from(2u64);
-                for &o1 in &[Ordering::Greater, Ordering::Less] {
-                    let a1 = a.iter()
-                        .map(|&o| if o == Ordering::Equal { o1 } else { o })
-                        .collect::<Vec<_>>()
-                        .into_boxed_slice();
-                    let e = patterns_by_count[count_equal(&a1)].entry(a1).or_insert_with(Mpq::zero);
-                    *e = &*e + &scale;
+            total = total + w;
+        }
+    }
+    while let Some((&(eq, _), _)) = pattern_map.iter().next_back() {
+        if eq == 0 {
+            return pattern_map.iter()
+                .map(|(&(_, gt), w)| (decode_bits(gt), w.clone()))
+                .collect::<Vec<_>>()
+                .into_boxed_slice();
+        }
+
+        let m = pattern_map.split_off(&(eq, 0));
+
+        if pattern_map.is_empty() {
+            return m.iter()
+                .map(|(&(_, gt), w)| (decode_bits(gt), w / Mpq::from(2u64)))
+                .chain(pattern_map.iter()
+                    .map(|(&(_, gt), w)| (decode_bits(gt | eq), w / Mpq::from(2u64))))
+                .collect::<Vec<_>>()
+                .into_boxed_slice();
+        }
+
+        let scale = m.iter().fold(total.clone(), |acc, (_, w)| acc - w);
+
+        let mut h = HashMap::new();
+        for (&(eq1, gt1), w1) in &pattern_map {
+            debug_assert!(eq1 < eq);
+            match h.entry((eq & eq1, eq & gt1)) {
+                HEntry::Occupied(mut e) => {
+                    let w2 = e.get() + w1;
+                    e.insert(w2);
                 }
-            } else {
-                let scale = w / total;
-                for (a1, w1) in &replacements {
-                    let e = patterns_by_count[count_equal(a1)]
-                        .entry(a1.clone())
-                        .or_insert_with(Mpq::zero);
-                    *e = &*e + w1 * &scale;
+                HEntry::Vacant(e) => {
+                    e.insert(w1.clone());
                 }
             }
         }
+
+        for ((eq_, gt), w) in m {
+            let w_scaled = w / &scale;
+            debug_assert_eq!(eq_, eq);
+            for (&(eq1, gt1), w1) in &h {
+                match pattern_map.entry((eq1, gt | gt1)) {
+                    BEntry::Occupied(mut e) => {
+                        let w2 = e.get() + w1 * &w_scaled;
+                        e.insert(w2);
+                    }
+                    BEntry::Vacant(e) => {
+                        e.insert(w1 * &w_scaled);
+                    }
+                }
+            }
+        }
+        debug_assert_eq!(pattern_map.iter().fold(Mpq::zero(), |acc, (_, w)| acc + w),
+                         total);
     }
-    patterns_by_count.pop()
-        .unwrap()
-        .iter()
-        .map(|(a, w)| {
-            (a.iter()
-                 .enumerate()
-                 .filter(|&(_, &o)| o == Ordering::Greater)
-                 .map(|(c, _)| c)
-                 .collect::<Vec<_>>()
-                 .into_boxed_slice(),
-             w.clone())
-        })
-        .collect::<Vec<_>>()
-        .into_boxed_slice()
+    Box::new([])
 }
 
 #[cfg(test)]
