@@ -11,8 +11,7 @@ fn encode_pattern(a: &[Ordering]) -> (usize, usize) {
 }
 
 fn decode_bits(mut gt: usize) -> Box<[usize]> {
-    let mut cs = Vec::new();
-    cs.reserve(gt.count_ones() as usize);
+    let mut cs = Vec::with_capacity(gt.count_ones() as usize);
     while gt != 0 {
         let k = gt.trailing_zeros();
         cs.push(k as usize);

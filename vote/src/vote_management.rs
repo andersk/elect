@@ -20,7 +20,9 @@ struct CandidateState {
 pub fn strength<Ballot>(num_seats: usize, ballots: &[(Ballot, Mpq)]) -> Mpq
     where Ballot: Borrow<[usize]>
 {
-    let ballot_candidates = &mut vec![Vec::new(); ballots.len()][..];
+    let ballot_candidates = &mut ballots.iter()
+        .map(|&(ref cs, _)| Vec::with_capacity(1 + cs.borrow().len()))
+        .collect::<Vec<_>>()[..];
     let candidate_ballots = &mut vec![Vec::new(); num_seats][..];
     for (b, &(ref cs, _)) in ballots.iter().enumerate() {
         ballot_candidates[b].push((!0, !0));
@@ -48,7 +50,8 @@ pub fn strength<Ballot>(num_seats: usize, ballots: &[(Ballot, Mpq)]) -> Mpq
     }; num_seats][..];
 
     let mut total_flow = Mpq::zero();
-    let mut queue = VecDeque::new();
+    let mut queue = VecDeque::with_capacity(ballots.len());
+    let mut found = Vec::with_capacity(num_seats);
 
     loop {
         for (b, bs) in ballot_states.iter_mut().enumerate() {
@@ -59,7 +62,6 @@ pub fn strength<Ballot>(num_seats: usize, ballots: &[(Ballot, Mpq)]) -> Mpq
             }
         }
 
-        let mut found = Vec::new();
         'search: loop {
             match queue.pop_front() {
                 None => {
@@ -176,6 +178,7 @@ pub fn strength<Ballot>(num_seats: usize, ballots: &[(Ballot, Mpq)]) -> Mpq
             debug_assert_eq!(bs.count, 0);
         }
         queue.clear();
+        found.clear();
     }
 }
 
