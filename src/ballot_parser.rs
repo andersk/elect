@@ -64,9 +64,13 @@ impl BallotParser {
         }
 
         let (w, groups) = match line.find(':') {
-            Some(i) =>
-                (parse_rational(&line[..i]).map_err(|()| "cannot parse ballot weight")?,
-                 &line[i + 1..]),
+            Some(i) => {
+                let w = parse_rational(&line[..i]).map_err(|()| "cannot parse ballot weight")?;
+                if w <= Mpq::zero() {
+                    Err("non-positive ballot weight")?
+                }
+                (w, &line[i + 1..])
+            }
             None => (Mpq::one(), &line[..]),
         };
 
