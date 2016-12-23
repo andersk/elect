@@ -101,7 +101,7 @@ pub fn proportional_completion<'a, Patterns>(patterns: Patterns) -> Box<[(Box<[u
 mod tests {
     use gmp::mpq::Mpq;
     use gmp::mpz::Mpz;
-    use std::cmp::Ordering;
+    use std::cmp::Ordering::{self, Greater as _1, Equal as _2, Less as _3};
     use std::str::FromStr;
 
     use super::proportional_completion;
@@ -117,7 +117,6 @@ mod tests {
     #[test]
     fn test_proportional_completion_1() {
         // Schulze’s calcul02.pdf
-        let (_1, _2, _3) = (Ordering::Greater, Ordering::Equal, Ordering::Less);
         let patterns: &[(&[Ordering], &Mpq)] = &[(&[_1, _1, _1, _1], &Q(46)),
                                                  (&[_1, _1, _1, _2], &Q(15)),
                                                  (&[_1, _1, _1, _3], &Q(24)),
@@ -183,6 +182,14 @@ mod tests {
                  w.clone())
             })
             .collect::<Vec<_>>();
+        assert_eq!(*sorted(&proportional_completion(patterns.iter().cloned())),
+                   *sorted(&expected));
+    }
+
+    #[test]
+    fn test_proportional_completion_2() {
+        let patterns: &[(&[Ordering], &Mpq)] = &[(&[_1, _3], &Q(1)), (&[_3, _2], &Q(1))];
+        let expected: &[(Box<[usize]>, Mpq)] = &[(Box::new([]), Q(1)), (Box::new([0]), Q(1))];
         assert_eq!(*sorted(&proportional_completion(patterns.iter().cloned())),
                    *sorted(&expected));
     }
