@@ -1,8 +1,7 @@
 use gmp::mpq::Mpq;
-use std::collections::btree_map::{BTreeMap, Entry as BEntry};
-use std::collections::hash_map::{HashMap, Entry as HEntry};
 use std::cmp::Ordering;
 use std::vec::Vec;
+use util::{combine_dups2, merge_combine};
 
 fn encode_pattern(a: &[Ordering]) -> (usize, usize) {
     a.iter().rev().fold((0, 0), |(eq, gt), &o| {
@@ -22,76 +21,74 @@ fn decode_bits(mut gt: usize) -> Box<[usize]> {
     cs.into_boxed_slice()
 }
 
-pub fn proportional_completion<'a, Patterns>(patterns: Patterns) -> Box<[(Box<[usize]>, Mpq)]>
+pub fn proportional_completion<'a, Patterns>(patterns_iter: Patterns) -> Box<[(Box<[usize]>, Mpq)]>
     where Patterns: Iterator<Item = (&'a [Ordering], &'a Mpq)>
 {
-    let mut pattern_map = BTreeMap::new();
-    let mut total = Mpq::zero();
-    for (a, w) in patterns {
-        if !w.is_zero() {
-            match pattern_map.entry(encode_pattern(a)) {
-                BEntry::Occupied(mut e) => {
-                    let w1 = e.get() + w;
-                    e.insert(w1);
-                }
-                BEntry::Vacant(e) => {
-                    e.insert(w.clone());
-                }
-            }
-            total = total + w;
-        }
-    }
-    while let Some((&(eq, _), _)) = pattern_map.iter().next_back() {
+    let mut patterns = patterns_iter.filter(|&(_, w)| !w.is_zero())
+        .map(|(a, w)| (encode_pattern(a), w))
+        .collect::<Vec<_>>();
+    patterns.sort_by(|a, b| a.0.cmp(&b.0));
+    let mut patterns = combine_dups2(patterns,
+                                     |a, b| a.0 == b.0,
+                                     |a| (a.0, a.1.clone()),
+                                     |a, b| (a.0, a.1 + b.1),
+                                     |a, b| (a.0, a.1 + b.1));
+    let total = patterns.iter().fold(Mpq::zero(), |acc, &(_, ref w)| acc + w);
+
+    while let Some(&((eq, _), _)) = patterns.last() {
         if eq == 0 {
-            return pattern_map.iter()
-                .map(|(&(_, gt), w)| (decode_bits(gt), w.clone()))
+            return patterns.into_iter()
+                .map(|((_, gt), w)| (decode_bits(gt), w))
                 .collect::<Vec<_>>()
                 .into_boxed_slice();
         }
 
-        let m = pattern_map.split_off(&(eq, 0));
-
-        if pattern_map.is_empty() {
-            return m.iter()
-                .map(|(&(_, gt), w)| (decode_bits(gt), w / Mpq::from(2u64)))
-                .chain(pattern_map.iter()
-                    .map(|(&(_, gt), w)| (decode_bits(gt | eq), w / Mpq::from(2u64))))
+        let i = if let Some(i) = patterns.iter().rposition(|&((eq1, _), _)| eq1 != eq) {
+            i + 1
+        } else {
+            return patterns.iter()
+                .map(|&((_, gt), ref w)| (decode_bits(gt), w / Mpq::from(2u64)))
+                .chain(patterns.iter()
+                    .map(|&((_, gt), ref w)| (decode_bits(gt | eq), w / Mpq::from(2u64))))
                 .collect::<Vec<_>>()
                 .into_boxed_slice();
-        }
+        };
 
-        let scale = m.iter().fold(total.clone(), |acc, (_, w)| acc - w);
+        let scale = patterns[i..].iter().fold(total.clone(), |acc, &(_, ref w)| acc - w).invert();
 
-        let mut h = HashMap::new();
-        for (&(eq1, gt1), w1) in &pattern_map {
-            debug_assert!(eq1 < eq);
-            match h.entry((eq & eq1, eq & gt1)) {
-                HEntry::Occupied(mut e) => {
-                    let w2 = e.get() + w1;
-                    e.insert(w2);
-                }
-                HEntry::Vacant(e) => {
-                    e.insert(w1.clone());
-                }
-            }
-        }
+        let breakers = {
+            let mut breakers = patterns[..i]
+                .iter()
+                .map(|&((eq1, gt1), ref w1)| {
+                    debug_assert!(eq1 < eq);
+                    ((eq & eq1, eq & gt1), w1)
+                })
+                .collect::<Vec<_>>();
+            breakers.sort_by(|a, b| a.0.cmp(&b.0));
+            combine_dups2(breakers,
+                          |a, b| a.0 == b.0,
+                          |a| (a.0, a.1.clone()),
+                          |a, b| (a.0, a.1 + b.1),
+                          |a, b| (a.0, a.1 + b.1))
+        };
 
-        for ((eq_, gt), w) in m {
-            let w_scaled = w / &scale;
-            debug_assert_eq!(eq_, eq);
-            for (&(eq1, gt1), w1) in &h {
-                match pattern_map.entry((eq1, gt | gt1)) {
-                    BEntry::Occupied(mut e) => {
-                        let w2 = e.get() + w1 * &w_scaled;
-                        e.insert(w2);
-                    }
-                    BEntry::Vacant(e) => {
-                        e.insert(w1 * &w_scaled);
-                    }
-                }
-            }
-        }
-        debug_assert_eq!(pattern_map.iter().fold(Mpq::zero(), |acc, (_, w)| acc + w),
+        let mut new_patterns = patterns.drain(i..)
+            .flat_map(|((eq_, gt), w)| {
+                debug_assert_eq!(eq_, eq);
+                let w_scaled = w * &scale;
+                breakers.iter().map(move |&((eq1, gt1), ref w1)| {
+                    debug_assert!(eq1 < eq);
+                    ((eq1, gt | gt1), w1 * &w_scaled)
+                })
+            })
+            .collect::<Vec<_>>();
+        new_patterns.sort_by(|a, b| a.0.cmp(&b.0));
+
+        patterns = merge_combine(patterns,
+                                 new_patterns,
+                                 |a, b| a.0.cmp(&b.0),
+                                 |a, b| (a.0, a.1 + b.1));
+        debug_assert_eq!(patterns.iter().fold(Mpq::zero(), |acc, &(_, ref w)| acc + w),
                          total);
     }
     Box::new([])
