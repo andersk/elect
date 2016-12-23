@@ -2,6 +2,7 @@ use gmp::mpq::Mpq;
 use gmp::mpz::Mpz;
 use std::borrow::Borrow;
 use std::collections::hash_map::{Entry, HashMap};
+use std::collections::HashSet;
 use std::error::Error;
 use std::fs::File;
 use std::io::{BufRead, BufReader, Read, stdin};
@@ -30,9 +31,9 @@ impl BallotParser {
         }
     }
 
-    fn parse_candidate(&mut self, name: &str) -> usize {
+    fn parse_candidate(&mut self, name: &str, used: &mut HashSet<usize>) -> Result<usize, String> {
         let name = name.trim();
-        match self.candidate_index.entry(name.to_string()) {
+        let n = match self.candidate_index.entry(name.to_string()) {
             Entry::Occupied(e) => *e.get(),
             Entry::Vacant(e) => {
                 let n = self.candidates.len();
@@ -40,21 +41,32 @@ impl BallotParser {
                 self.candidates.push(name.to_string());
                 n
             }
+        };
+        if used.insert(n) {
+            Ok(n)
+        } else {
+            Err(format!("candidate repeated: {}", name))
         }
     }
 
-    fn parse_group(&mut self, group: &str) -> Box<[usize]> {
-        group.split('=')
-            .map(|name| self.parse_candidate(name))
-            .collect::<Vec<_>>()
-            .into_boxed_slice()
+    fn parse_group(&mut self,
+                   group: &str,
+                   used: &mut HashSet<usize>)
+                   -> Result<Box<[usize]>, String> {
+        Ok(group.split('=')
+            .map(|name| self.parse_candidate(name, used))
+            .collect::<Result<Vec<_>, _>>()?
+            .into_boxed_slice())
     }
 
-    fn parse_groups(&mut self, groups: &str) -> Box<[Box<[usize]>]> {
-        groups.split('>')
-            .map(|group| self.parse_group(group))
-            .collect::<Vec<_>>()
-            .into_boxed_slice()
+    fn parse_groups(&mut self,
+                    groups: &str,
+                    used: &mut HashSet<usize>)
+                    -> Result<Box<[Box<[usize]>]>, String> {
+        Ok(groups.split('>')
+            .map(|group| self.parse_group(group, used))
+            .collect::<Result<Vec<_>, _>>()?
+            .into_boxed_slice())
     }
 
     fn add_ballot(&mut self, line: &str) -> Result<(), String> {
@@ -74,7 +86,7 @@ impl BallotParser {
             None => (Mpq::one(), &line[..]),
         };
 
-        let ballot = (self.parse_groups(groups), w);
+        let ballot = (self.parse_groups(groups, &mut HashSet::new())?, w);
         self.ballots.push(ballot);
         Ok(())
     }
