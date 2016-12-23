@@ -3,7 +3,6 @@ use gmp::mpz::Mpz;
 use std::borrow::Borrow;
 use std::collections::hash_map::{Entry, HashMap};
 use std::collections::HashSet;
-use std::error::Error;
 use std::fs::File;
 use std::io::{BufRead, BufReader, Read, stdin};
 use std::result::Result;
@@ -96,7 +95,7 @@ impl BallotParser {
 
     fn add_ballots<R: Read>(&mut self, buf: BufReader<R>) -> Result<(), (usize, String)> {
         for (lineno, line) in buf.lines().enumerate() {
-            self.add_ballot(&line.map_err(|e| (lineno, String::from(e.description())))?)
+            self.add_ballot(&line.map_err(|e| (lineno, e.to_string()))?)
                 .map_err(|e| (lineno, e))?;
         }
         Ok(())
