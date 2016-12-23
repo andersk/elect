@@ -33,6 +33,9 @@ impl BallotParser {
 
     fn parse_candidate(&mut self, name: &str, used: &mut HashSet<usize>) -> Result<usize, String> {
         let name = name.trim();
+        if name.is_empty() {
+            Err("empty candidate name")?
+        }
         let n = match self.candidate_index.entry(name.to_string()) {
             Entry::Occupied(e) => *e.get(),
             Entry::Vacant(e) => {
