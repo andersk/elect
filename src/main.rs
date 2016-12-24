@@ -9,26 +9,28 @@ mod ballot_parser;
 
 use ballot_parser::parse_ballot_files;
 use getopts::Options;
-#[cfg(feature = "use-gmp")]
-use gmp::mpq::Mpq;
-#[cfg(feature = "use-num-rational")]
-use num_rational::BigRational;
 use std::env;
 use std::io::{Write, stderr};
 use std::process::exit;
 use vote::schulze_stv::schulze_stv;
-use vote::hw_float::HwFloat;
 use vote::traits::{Weight, WeightOps};
 
 const USAGE: &'static str = include_str!("usage.txt");
 
-fn main_result() -> Result<(), String> {
-    let default_calc = [
-        #[cfg(feature = "use-gmp")] "mpq",
-        #[cfg(feature = "use-num-rational")] "num",
-        "hw",
-    ][0];
+struct Calc {
+    calc: &'static str,
+    run: fn(&Calc, &str, usize, &[String]) -> Result<(), String>,
+}
 
+const CALCS: &'static [Calc] = &[
+    #[cfg(feature = "use-gmp")]
+    Calc { calc: "mpq", run: run::<gmp::mpq::Mpq> },
+    #[cfg(feature = "use-num-rational")]
+    Calc { calc: "num", run: run::<num_rational::BigRational> },
+    Calc { calc: "hw", run: run::<vote::hw_float::HwFloat> },
+];
+
+fn main_result() -> Result<(), String> {
     let args = env::args().collect::<Vec<_>>();
     let program = &args[0];
 
@@ -41,7 +43,7 @@ fn main_result() -> Result<(), String> {
                 "calc",
                 "TYPE",
                 &format!("number type to use for calculations (default: {})",
-                         default_calc));
+                         CALCS[0].calc));
     opts.optflag("", "help", "show this help message and exit");
     opts.optflag("", "version", "show the program version and exit");
     let matches = opts.parse(&args[1..]).map_err(|e| format!("{}: error: {}", program, e))?;
@@ -65,18 +67,18 @@ fn main_result() -> Result<(), String> {
         .map(|s| s.parse().map_err(|e| format!("{}: error: -w argument: {}", program, e)))
         .unwrap_or(Ok(1))?;
 
-    let calc = matches.opt_str("calc");
-    match calc.as_ref().map(|s| &**s).unwrap_or(default_calc) {
-        #[cfg(feature = "use-gmp")]
-        "mpq" => run::<Mpq>(program, num_seats, &matches.free),
-        #[cfg(feature = "use-num-rational")]
-        "num" => run::<BigRational>(program, num_seats, &matches.free),
-        "hw" => run::<HwFloat>(program, num_seats, &matches.free),
-        s => Err(format!("unknown number type {}", s)),
-    }
+    let calc = match matches.opt_str("calc") {
+        Some(calc_opt) => {
+            CALCS.iter()
+                .find(|calc| calc.calc == calc_opt)
+                .ok_or_else(|| format!("unknown number type {}", calc_opt))
+        }
+        None => Ok(&CALCS[0]),
+    }?;
+    (calc.run)(calc, program, num_seats, &matches.free)
 }
 
-fn run<W>(program: &str, num_seats: usize, filenames: &[String]) -> Result<(), String>
+fn run<W>(calc: &Calc, program: &str, num_seats: usize, filenames: &[String]) -> Result<(), String>
     where W: Weight,
           for<'w> &'w W: WeightOps<W>
 {
@@ -85,7 +87,7 @@ fn run<W>(program: &str, num_seats: usize, filenames: &[String]) -> Result<(), S
         return Err(format!("{}: error: No ballots found", program));
     }
 
-    println!("Tallying Schulze STV election.");
+    println!("Tallying Schulze STV election (calc={}).", calc.calc);
     println!("");
 
     println!("Candidates ({}):", bp.candidates.len());
