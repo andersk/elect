@@ -46,6 +46,11 @@ pub trait Weight: Clone + Ord + WeightOps<Self> + fmt::Debug {
     fn from_i64(i64) -> Self;
     fn from_str(s: &str) -> Result<Self, Self::FromStrErr>;
     fn to_string(&self) -> String;
+
+    #[inline]
+    fn fuzzy_eq(&self, other: &Self) -> bool {
+        self == other
+    }
 }
 
 #[derive(Debug)]

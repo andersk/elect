@@ -13,6 +13,7 @@ use std::env;
 use std::io::{Write, stderr};
 use std::process::exit;
 use vote::schulze_stv::schulze_stv;
+use vote::hw_float::HwFloat;
 use vote::traits::{Weight, WeightOps};
 
 const USAGE: &'static str = include_str!("usage.txt");
@@ -57,6 +58,7 @@ fn main_result() -> Result<(), String> {
     match calc.as_ref().map(|s| &**s) {
         Some("mpq") | None => run::<Mpq>(program, num_seats, &matches.free),
         Some("num") => run::<BigRational>(program, num_seats, &matches.free),
+        Some("hw") => run::<HwFloat>(program, num_seats, &matches.free),
         Some(s) => Err(format!("unknown number type {}", s)),
     }
 }

@@ -3,6 +3,7 @@ extern crate num_rational;
 extern crate num_traits;
 
 mod combination;
+pub mod hw_float;
 pub mod traits;
 mod proportional_completion;
 pub mod schulze;

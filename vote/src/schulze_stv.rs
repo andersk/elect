@@ -147,7 +147,7 @@ pub fn schulze_stv<W, Group, Groups>(num_candidates: usize,
         .collect::<Vec<_>>();
 
     defeats.sort_by(|a, b| b.0.cmp(a.0));
-    let defeat_groups = &combine_dups(defeats, |a, b| a.0 == b.0, |a| vec![a], |mut a, b| {
+    let defeat_groups = &combine_dups(defeats, |a, b| a.0.fuzzy_eq(b.0), |a| vec![a], |mut a, b| {
             a.push(b);
             a
         })
