@@ -1,5 +1,8 @@
+#[cfg(any(feature = "rust-gmp", test))]
 extern crate gmp;
+#[cfg(feature = "num-rational")]
 extern crate num_rational;
+#[cfg(feature = "num-rational")]
 extern crate num_traits;
 
 mod combination;

@@ -4,7 +4,15 @@ version = "0.1.0"
 authors = ["Anders Kaseorg <andersk@mit.edu>"]
 license = "MIT"
 
+[features]
+default = ["use-gmp"]
+use-gmp = ["rust-gmp"]
+use-num-rational = ["num-rational", "num-traits"]
+
 [dependencies]
-num-rational = "0.1"
-num-traits = "0.1"
-rust-gmp = "0.3"
+num-rational = { version = "0.1", optional = true }
+num-traits = { version = "0.1", optional = true }
+rust-gmp = { version = "0.3", optional = true }
+
+[dev-dependencies]
+rust-gmp = { version = "0.3" }

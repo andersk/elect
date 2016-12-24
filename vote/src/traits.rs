@@ -1,10 +1,15 @@
+#[cfg(any(feature = "use-gmp", test))]
 use gmp::mpq::Mpq;
+#[cfg(any(feature = "use-gmp", test))]
 use gmp::mpz::Mpz;
+#[cfg(feature = "use-num-rational")]
 use num_rational::BigRational;
+#[cfg(feature = "use-num-rational")]
 use num_traits::{Zero, One};
 use std::error::Error;
 use std::fmt;
 use std::ops::{Add, Sub, Mul, Div};
+#[cfg(feature = "use-num-rational")]
 use std::str::FromStr;
 
 pub trait WeightValOps<RHS = Self, Output = Self>
@@ -53,15 +58,18 @@ pub trait Weight: Clone + Ord + WeightOps<Self> + fmt::Debug {
     }
 }
 
+#[cfg(any(feature = "use-gmp", test))]
 #[derive(Debug)]
 pub struct ParseMpqError(());
 
+#[cfg(any(feature = "use-gmp", test))]
 impl fmt::Display for ParseMpqError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         self.description().fmt(f)
     }
 }
 
+#[cfg(any(feature = "use-gmp", test))]
 impl Error for ParseMpqError {
     fn description(&self) -> &'static str {
         "invalid rational number"
@@ -72,6 +80,7 @@ impl Error for ParseMpqError {
     }
 }
 
+#[cfg(any(feature = "use-gmp", test))]
 impl Weight for Mpq {
     type FromStrErr = ParseMpqError;
 
@@ -116,6 +125,7 @@ impl Weight for Mpq {
     }
 }
 
+#[cfg(feature = "use-num-rational")]
 impl Weight for BigRational {
     type FromStrErr = <BigRational as FromStr>::Err;
 

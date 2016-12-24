@@ -4,11 +4,16 @@ version = "0.1.0"
 authors = ["Anders Kaseorg <andersk@mit.edu>"]
 license = "MIT"
 
+[features]
+default = ["use-gmp"]
+use-gmp = ["rust-gmp", "vote/use-gmp"]
+use-num-rational = ["num-rational", "vote/use-num-rational"]
+
 [dependencies]
 getopts = "0.2"
-num-rational = "0.1"
-rust-gmp = "0.3"
-vote = { path = "vote", version = "0.1" }
+num-rational = { version = "0.1", optional = true }
+rust-gmp = { version = "0.3", optional = true }
+vote = { path = "vote", version = "0.1", default-features = false }
 
 [workspace]
 members = ["vote"]
