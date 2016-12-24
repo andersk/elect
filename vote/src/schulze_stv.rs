@@ -1,8 +1,8 @@
 use std::borrow::Borrow;
 use std::cmp::Ordering;
-use std::collections::BTreeMap;
 use std::iter::once;
 use std::vec::Vec;
+use util::combine_dups;
 
 use combination::{make_binomial, encode_combination, decode_combination};
 use proportional_completion::proportional_completion;
@@ -121,33 +121,48 @@ pub fn schulze_stv<W, Group, Groups>(num_candidates: usize,
           Group: Borrow<[usize]>,
           Groups: Borrow<[Group]>
 {
-    let binomial = make_binomial(num_candidates, num_seats);
+    let binomial = &make_binomial(num_candidates, num_seats);
     let strengths = all_strengths(num_candidates, num_seats, ballots);
 
-    let mut defeat_map = BTreeMap::new();
-    for m in 0..strengths.len() {
-        let set = decode_combination(&binomial, num_seats, m);
-        let setv = &mut vec![false; num_candidates][..];
-        for &i in &*set {
-            setv[i] = true;
-        }
-        for opponent in 0..num_candidates {
-            if setv[opponent] {
-                continue;
+    let mut defeats = strengths.iter()
+        .enumerate()
+        .flat_map(move |(m, strength)| {
+            let set = decode_combination(binomial, num_seats, m);
+            let mut setv = vec![false; num_candidates];
+            for &i in &*set {
+                setv[i] = true;
             }
-            for set1 in &*replacements(&set, opponent) {
-                let m1 = encode_combination(&binomial, set1);
-                defeat_map.entry(&strengths[m][opponent])
-                    .or_insert_with(Vec::new)
-                    .push((m, m1));
-            }
-        }
-    }
-    let defeat_groups = &defeat_map.values().rev().map(|v| &v[..]).collect::<Vec<_>>()[..];
+            (0..num_candidates)
+                .filter(move |&opponent| !setv[opponent])
+                .flat_map(move |opponent| {
+                    let r = replacements(&set, opponent);
+                    r.into_iter()
+                        .map(move |set1| {
+                            let m1 = encode_combination(binomial, set1);
+                            (&strength[opponent], (m, m1))
+                        })
+                        .collect::<Vec<_>>()
+                })
+        })
+        .collect::<Vec<_>>();
+
+    defeats.sort_by(|a, b| b.0.cmp(a.0));
+    let defeat_groups = &combine_dups(defeats, |a, b| a.0 == b.0, |a| vec![a], |mut a, b| {
+            a.push(b);
+            a
+        })
+        .iter()
+        .map(|a| {
+            a.iter()
+                .map(|&(_, g)| g)
+                .collect::<Vec<_>>()
+                .into_boxed_slice()
+        })
+        .collect::<Vec<_>>();
 
     schulze_graph(strengths.len(), defeat_groups)
         .iter()
-        .map(|&c| decode_combination(&binomial, num_seats, c))
+        .map(move |&c| decode_combination(binomial, num_seats, c))
         .collect::<Vec<_>>()
         .into_boxed_slice()
 }

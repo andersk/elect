@@ -1,5 +1,14 @@
 use std::cmp::Ordering;
 
+pub fn combine_dups<A, B, I, Eq, One, More>(i: I, eq: Eq, one: One, more: More) -> Vec<B>
+    where I: IntoIterator<Item = A>,
+          Eq: Fn(&A, &A) -> bool,
+          One: Fn(A) -> B,
+          More: Fn(B, A) -> B
+{
+    combine_dups2(i, eq, |a| one(a), |a, b| more(one(a), b), |a, b| more(a, b))
+}
+
 pub fn combine_dups2<A, B, I, Eq, One, Two, More>(i: I,
                                                   eq: Eq,
                                                   one: One,
