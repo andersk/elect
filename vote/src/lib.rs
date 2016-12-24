@@ -1,6 +1,9 @@
 extern crate gmp;
+extern crate num_rational;
+extern crate num_traits;
 
 mod combination;
+pub mod traits;
 mod proportional_completion;
 pub mod schulze;
 pub mod schulze_stv;

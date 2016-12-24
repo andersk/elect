@@ -1,4 +1,3 @@
-use gmp::mpq::Mpq;
 use std::borrow::Borrow;
 use std::cmp::Ordering;
 use std::collections::BTreeMap;
@@ -8,6 +7,7 @@ use std::vec::Vec;
 use combination::{make_binomial, encode_combination, decode_combination};
 use proportional_completion::proportional_completion;
 use schulze::schulze_graph;
+use traits::{Weight, WeightOps};
 use vote_management::strength;
 
 fn preferred<Group>(num_seats: usize,
@@ -68,11 +68,13 @@ fn replacements(set: &[usize], opponent: usize) -> Box<[Box<[usize]>]> {
         .into_boxed_slice()
 }
 
-fn all_strengths<Group, Groups>(num_candidates: usize,
-                                num_seats: usize,
-                                ballots: &[(Groups, Mpq)])
-                                -> Box<[Box<[Mpq]>]>
-    where Group: Borrow<[usize]>,
+fn all_strengths<W, Group, Groups>(num_candidates: usize,
+                                   num_seats: usize,
+                                   ballots: &[(Groups, W)])
+                                   -> Box<[Box<[W]>]>
+    where W: Weight,
+          for<'w> &'w W: WeightOps<W>,
+          Group: Borrow<[usize]>,
           Groups: Borrow<[Group]>
 {
     let binomial = make_binomial(num_candidates, num_seats);
@@ -88,7 +90,7 @@ fn all_strengths<Group, Groups>(num_candidates: usize,
             (0..num_candidates)
                 .map(|opponent| {
                     if seti[opponent] != !0 {
-                        Mpq::zero()
+                        W::zero()
                     } else {
                         let patterns = ballots.iter()
                             .map(|&(ref groups, ref w)| {
@@ -99,7 +101,7 @@ fn all_strengths<Group, Groups>(num_candidates: usize,
                             .map(|&(ref a, w)| (&a[..], w)));
                         strength(num_seats,
                                  &completed.iter()
-                                     .map(|&(ref a, ref w)| (&**a, w.clone()))
+                                     .map(|&(ref a, ref w)| (&**a, (*w).clone()))
                                      .collect::<Vec<_>>()[..])
                     }
                 })
@@ -110,11 +112,13 @@ fn all_strengths<Group, Groups>(num_candidates: usize,
         .into_boxed_slice()
 }
 
-pub fn schulze_stv<Group, Groups>(num_candidates: usize,
-                                  num_seats: usize,
-                                  ballots: &[(Groups, Mpq)])
-                                  -> Box<[Box<[usize]>]>
-    where Group: Borrow<[usize]>,
+pub fn schulze_stv<W, Group, Groups>(num_candidates: usize,
+                                     num_seats: usize,
+                                     ballots: &[(Groups, W)])
+                                     -> Box<[Box<[usize]>]>
+    where W: Weight,
+          for<'w> &'w W: WeightOps<W>,
+          Group: Borrow<[usize]>,
           Groups: Borrow<[Group]>
 {
     let binomial = make_binomial(num_candidates, num_seats);

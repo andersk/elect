@@ -1,12 +1,13 @@
-use gmp::mpq::Mpq;
 use std::borrow::Borrow;
 use std::collections::VecDeque;
 use std::vec::Vec;
 
-struct BallotState {
+use traits::{Weight, WeightOps};
+
+struct BallotState<W> {
     level: usize,
     prev: usize,
-    edge_flow: Box<[Mpq]>,
+    edge_flow: Box<[W]>,
     count: i32,
 }
 
@@ -17,8 +18,10 @@ struct CandidateState {
     count: i32,
 }
 
-pub fn strength<Ballot>(num_seats: usize, ballots: &[(Ballot, Mpq)]) -> Mpq
-    where Ballot: Borrow<[usize]>
+pub fn strength<W, Ballot>(num_seats: usize, ballots: &[(Ballot, W)]) -> W
+    where W: Weight,
+          for<'w> &'w W: WeightOps<W>,
+          Ballot: Borrow<[usize]>
 {
     let ballot_candidates = &mut ballots.iter()
         .map(|&(ref cs, _)| Vec::with_capacity(1 + cs.borrow().len()))
@@ -33,7 +36,7 @@ pub fn strength<Ballot>(num_seats: usize, ballots: &[(Ballot, Mpq)]) -> Mpq
     }
     let ballot_states = &mut ballots.iter()
         .map(|&(ref cs, ref w)| {
-            let mut edge_flow = vec![Mpq::zero(); 1 + cs.borrow().len()].into_boxed_slice();
+            let mut edge_flow = vec![W::zero(); 1 + cs.borrow().len()].into_boxed_slice();
             edge_flow[0] = w.clone();
             BallotState {
                 level: !0,
@@ -49,7 +52,7 @@ pub fn strength<Ballot>(num_seats: usize, ballots: &[(Ballot, Mpq)]) -> Mpq
         count: 0,
     }; num_seats][..];
 
-    let mut total_flow = Mpq::zero();
+    let mut total_flow = W::zero();
     let mut queue = VecDeque::with_capacity(ballots.len());
     let mut found = Vec::with_capacity(num_seats);
 
@@ -115,7 +118,7 @@ pub fn strength<Ballot>(num_seats: usize, ballots: &[(Ballot, Mpq)]) -> Mpq
                     let j = candidate_states[c].prev;
                     let (b, _) = candidate_ballots[c][j];
                     &ballot_states[b].edge_flow[ballot_states[b].prev] /
-                    Mpq::from(ballot_states[b].count as i64)
+                    W::from_i64(ballot_states[b].count as i64)
                 })
                 .min()
                 .unwrap();
@@ -128,11 +131,11 @@ pub fn strength<Ballot>(num_seats: usize, ballots: &[(Ballot, Mpq)]) -> Mpq
                 {
                     let edge_flow = &mut ballot_states[b].edge_flow[i];
                     *edge_flow = &*edge_flow +
-                                 &flow * Mpq::from(candidate_states[c].count as i64 + 1);
+                                 &flow * W::from_i64(candidate_states[c].count as i64 + 1);
                 }
                 if ballot_states[b].count != 0 {
                     let edge_flow = &mut ballot_states[b].edge_flow[ballot_states[b].prev];
-                    *edge_flow = &*edge_flow - &flow * Mpq::from(ballot_states[b].count as i64);
+                    *edge_flow = &*edge_flow - &flow * W::from_i64(ballot_states[b].count as i64);
                     ballot_states[b].count = 0;
                 }
 

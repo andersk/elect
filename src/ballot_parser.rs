@@ -1,28 +1,19 @@
-use gmp::mpq::Mpq;
-use gmp::mpz::Mpz;
 use std::borrow::Borrow;
 use std::collections::hash_map::{Entry, HashMap};
 use std::collections::HashSet;
 use std::fs::File;
 use std::io::{BufRead, BufReader, Read, stdin};
 use std::result::Result;
-use std::str::FromStr;
+use vote::traits::Weight;
 
-pub struct BallotParser {
+pub struct BallotParser<W> {
     pub candidates: Vec<String>,
     pub candidate_index: HashMap<String, usize>,
-    pub ballots: Vec<(Box<[Box<[usize]>]>, Mpq)>,
+    pub ballots: Vec<(Box<[Box<[usize]>]>, W)>,
 }
 
-fn parse_rational(s: &str) -> Result<Mpq, ()> {
-    match s.find('/') {
-        Some(i) => Ok(Mpq::ratio(&Mpz::from_str(&s[..i])?, &Mpz::from_str(&s[i + 1..])?)),
-        None => Ok(Mpq::ratio(&Mpz::from_str(s)?, &Mpz::one())),
-    }
-}
-
-impl BallotParser {
-    fn new() -> BallotParser {
+impl<W: Weight> BallotParser<W> {
+    fn new() -> BallotParser<W> {
         BallotParser {
             candidates: Vec::new(),
             candidate_index: HashMap::new(),
@@ -79,13 +70,14 @@ impl BallotParser {
 
         let (w, groups) = match line.find(':') {
             Some(i) => {
-                let w = parse_rational(&line[..i]).map_err(|()| "cannot parse ballot weight")?;
-                if w <= Mpq::zero() {
+                let w = W::from_str(&line[..i].trim())
+                    .map_err(|e| format!("cannot parse ballot weight: {}", e))?;
+                if w <= W::zero() {
                     Err("non-positive ballot weight")?
                 }
                 (w, &line[i + 1..])
             }
-            None => (Mpq::one(), &line[..]),
+            None => (W::one(), &line[..]),
         };
 
         let ballot = (self.parse_groups(groups, &mut HashSet::new())?, w);
@@ -112,8 +104,9 @@ impl BallotParser {
     }
 }
 
-pub fn parse_ballot_files<Str>(filenames: &[Str]) -> Result<BallotParser, String>
-    where Str: Borrow<str>
+pub fn parse_ballot_files<W, Str>(filenames: &[Str]) -> Result<BallotParser<W>, String>
+    where W: Weight,
+          Str: Borrow<str>
 {
     let mut bp = BallotParser::new();
     for filename in filenames.iter() {

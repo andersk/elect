@@ -1,6 +1,7 @@
-use gmp::mpq::Mpq;
 use std::cmp::Ordering;
 use std::vec::Vec;
+
+use traits::{Weight, WeightOps};
 use util::{combine_dups2, merge_combine};
 
 fn encode_pattern(a: &[Ordering]) -> (usize, usize) {
@@ -20,8 +21,10 @@ fn decode_bits(mut gt: usize) -> Box<[usize]> {
     cs.into_boxed_slice()
 }
 
-pub fn proportional_completion<'a, Patterns>(patterns_iter: Patterns) -> Box<[(Box<[usize]>, Mpq)]>
-    where Patterns: Iterator<Item = (&'a [Ordering], &'a Mpq)>
+pub fn proportional_completion<'a, W, Patterns>(patterns_iter: Patterns) -> Box<[(Box<[usize]>, W)]>
+    where W: Weight + 'a,
+          for<'w> &'w W: WeightOps<W>,
+          Patterns: Iterator<Item = (&'a [Ordering], &'a W)>
 {
     let mut patterns = patterns_iter.filter(|&(_, w)| !w.is_zero())
         .map(|(a, w)| (encode_pattern(a), w))
@@ -32,7 +35,7 @@ pub fn proportional_completion<'a, Patterns>(patterns_iter: Patterns) -> Box<[(B
                                      |a| (a.0, a.1.clone()),
                                      |a, b| (a.0, a.1 + b.1),
                                      |a, b| (a.0, a.1 + b.1));
-    let total = patterns.iter().fold(Mpq::zero(), |acc, &(_, ref w)| acc + w);
+    let total = patterns.iter().fold(W::zero(), |acc, &(_, ref w)| acc + w);
 
     while let Some(&((eq, _), _)) = patterns.last() {
         if eq == 0 {
@@ -46,14 +49,14 @@ pub fn proportional_completion<'a, Patterns>(patterns_iter: Patterns) -> Box<[(B
             i + 1
         } else {
             return patterns.iter()
-                .map(|&((_, gt), ref w)| (decode_bits(gt), w / Mpq::from(2u64)))
+                .map(|&((_, gt), ref w)| (decode_bits(gt), w / W::from_i64(2)))
                 .chain(patterns.iter()
-                    .map(|&((_, gt), ref w)| (decode_bits(gt | eq), w / Mpq::from(2u64))))
+                    .map(|&((_, gt), ref w)| (decode_bits(gt | eq), w / W::from_i64(2))))
                 .collect::<Vec<_>>()
                 .into_boxed_slice();
         };
 
-        let scale = patterns[i..].iter().fold(total.clone(), |acc, &(_, ref w)| acc - w).invert();
+        let scale = W::one() / patterns[i..].iter().fold(total.clone(), |acc, &(_, ref w)| acc - w);
 
         let breakers = {
             let mut breakers = patterns[..i]
@@ -87,7 +90,7 @@ pub fn proportional_completion<'a, Patterns>(patterns_iter: Patterns) -> Box<[(B
                                  new_patterns,
                                  |a, b| a.0.cmp(&b.0),
                                  |a, b| (a.0, a.1 + b.1));
-        debug_assert_eq!(patterns.iter().fold(Mpq::zero(), |acc, &(_, ref w)| acc + w),
+        debug_assert_eq!(patterns.iter().fold(W::zero(), |acc, &(_, ref w)| acc + w),
                          total);
     }
     Box::new([])
