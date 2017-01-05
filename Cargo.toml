@@ -12,7 +12,7 @@ use-num-rational = ["num-rational", "vote/use-num-rational"]
 [dependencies]
 getopts = "0.2"
 num-rational = { version = "0.1", optional = true }
-rust-gmp = { version = "0.3", optional = true }
+rust-gmp = { version = "0.4", optional = true }
 vote = { path = "vote", version = "0.1", default-features = false }
 
 [workspace]
