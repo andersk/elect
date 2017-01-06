@@ -113,15 +113,19 @@ pub fn strength<W, Ballot>(num_seats: usize, ballots: &[(Ballot, W)]) -> W
             }
             debug_assert_eq!(sunk, num_seats as i32);
 
-            let flow = found.iter()
-                .map(|&c| {
-                    let j = candidate_states[c].prev;
-                    let (b, _) = candidate_ballots[c][j];
-                    &ballot_states[b].edge_flow[ballot_states[b].prev] /
-                    W::from_i64(ballot_states[b].count as i64)
-                })
-                .min()
-                .unwrap();
+            let (flow, flow_times_count, count) = {
+                let (flow, flow_times_count, count) = found.iter()
+                    .map(|&c| {
+                        let j = candidate_states[c].prev;
+                        let (b, _) = candidate_ballots[c][j];
+                        let flow_times_count = &ballot_states[b].edge_flow[ballot_states[b].prev];
+                        let count = ballot_states[b].count;
+                        (flow_times_count / W::from_i64(count as i64), flow_times_count, count)
+                    })
+                    .min()
+                    .unwrap();
+                (flow, flow_times_count.clone(), count)
+            };
             debug_assert!(!flow.is_zero());
             total_flow = total_flow + &flow;
 
@@ -130,12 +134,21 @@ pub fn strength<W, Ballot>(num_seats: usize, ballots: &[(Ballot, W)]) -> W
                 let (b, i) = candidate_ballots[c][j];
                 {
                     let edge_flow = &mut ballot_states[b].edge_flow[i];
-                    *edge_flow = &*edge_flow +
-                                 &flow * W::from_i64(candidate_states[c].count as i64 + 1);
+                    if candidate_states[c].count + 1 == count {
+                        *edge_flow = &*edge_flow + &flow_times_count;
+                    } else {
+                        *edge_flow = &*edge_flow +
+                                     &flow * W::from_i64(candidate_states[c].count as i64 + 1);
+                    }
                 }
                 if ballot_states[b].count != 0 {
                     let edge_flow = &mut ballot_states[b].edge_flow[ballot_states[b].prev];
-                    *edge_flow = &*edge_flow - &flow * W::from_i64(ballot_states[b].count as i64);
+                    if ballot_states[b].count == count {
+                        *edge_flow = &*edge_flow - &flow_times_count;
+                    } else {
+                        *edge_flow = &*edge_flow -
+                                     &flow * W::from_i64(ballot_states[b].count as i64);
+                    }
                     ballot_states[b].count = 0;
                 }
 
