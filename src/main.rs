@@ -43,9 +43,9 @@ fn main_result() -> Result<(), String> {
                 "N");
     opts.optopt("",
                 "calc",
-                "TYPE",
                 &format!("number type to use for calculations (default: {})",
-                         CALCS[0].calc));
+                         CALCS[0].calc),
+                "TYPE");
     opts.optflag("", "help", "show this help message and exit");
     opts.optflag("", "version", "show the program version and exit");
     let matches = opts.parse(&args[1..]).map_err(|e| format!("{}: error: {}", program, e))?;
