@@ -1,6 +1,8 @@
 #[cfg(any(feature = "use-gmp", test))]
 extern crate gmp;
 #[cfg(feature = "use-num-rational")]
+extern crate num_integer;
+#[cfg(feature = "use-num-rational")]
 extern crate num_rational;
 extern crate num_traits;
 
