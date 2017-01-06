@@ -1,9 +1,11 @@
 use std::borrow::Borrow;
 use std::collections::hash_map::{Entry, HashMap};
 use std::collections::HashSet;
+use std::fmt::Display;
 use std::fs::File;
 use std::io::{BufRead, BufReader, Read, stdin};
 use std::result::Result;
+use std::str::FromStr;
 use vote::traits::Weight;
 
 pub struct BallotParser<W> {
@@ -12,7 +14,9 @@ pub struct BallotParser<W> {
     pub ballots: Vec<(Box<[Box<[usize]>]>, W)>,
 }
 
-impl<W: Weight> BallotParser<W> {
+impl<W: FromStr + Weight> BallotParser<W>
+    where W::Err: Display
+{
     fn new() -> BallotParser<W> {
         BallotParser {
             candidates: Vec::new(),
@@ -105,7 +109,8 @@ impl<W: Weight> BallotParser<W> {
 }
 
 pub fn parse_ballot_files<W, Str>(filenames: &[Str]) -> Result<BallotParser<W>, String>
-    where W: Weight,
+    where W: FromStr + Weight,
+          W::Err: Display,
           Str: Borrow<str>
 {
     let mut bp = BallotParser::new();

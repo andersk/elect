@@ -1,5 +1,4 @@
 use num_traits::{One, Zero};
-use std::error::Error;
 use std::fmt;
 use std::ops::{Add, Sub, Mul, Div};
 
@@ -32,10 +31,7 @@ impl<Base, T> WeightOps<Base> for T
 }
 
 pub trait Weight: Clone + Ord + WeightOps<Self> + Zero + One + fmt::Debug {
-    type FromStrErr: Error;
-
     fn from_i64(i64) -> Self;
-    fn from_str(s: &str) -> Result<Self, Self::FromStrErr>;
     fn to_string(&self) -> String;
 
     #[inline]

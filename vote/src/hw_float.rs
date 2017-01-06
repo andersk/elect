@@ -92,17 +92,19 @@ impl One for HwFloat {
     }
 }
 
-impl Weight for HwFloat {
-    type FromStrErr = <f64 as FromStr>::Err;
-
-    #[inline]
-    fn from_i64(n: i64) -> HwFloat {
-        HwFloat(n as f64)
-    }
+impl FromStr for HwFloat {
+    type Err = <f64 as FromStr>::Err;
 
     #[inline]
     fn from_str(s: &str) -> Result<HwFloat, <f64 as FromStr>::Err> {
         FromStr::from_str(s).map(HwFloat)
+    }
+}
+
+impl Weight for HwFloat {
+    #[inline]
+    fn from_i64(n: i64) -> HwFloat {
+        HwFloat(n as f64)
     }
 
     #[inline]

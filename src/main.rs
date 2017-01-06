@@ -10,8 +10,10 @@ mod ballot_parser;
 use ballot_parser::parse_ballot_files;
 use getopts::Options;
 use std::env;
+use std::fmt::Display;
 use std::io::{Write, stderr};
 use std::process::exit;
+use std::str::FromStr;
 use vote::schulze_stv::schulze_stv;
 use vote::traits::{Weight, WeightOps};
 
@@ -79,7 +81,8 @@ fn main_result() -> Result<(), String> {
 }
 
 fn run<W>(calc: &Calc, program: &str, num_seats: usize, filenames: &[String]) -> Result<(), String>
-    where W: Weight,
+    where W: FromStr + Weight,
+          W::Err: Display,
           for<'w> &'w W: WeightOps<W>
 {
     let bp = parse_ballot_files::<W, _>(filenames)?;
