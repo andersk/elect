@@ -29,21 +29,6 @@ impl Weight for Mpq {
     type FromStrErr = ParseMpqError;
 
     #[inline]
-    fn zero() -> Mpq {
-        Mpq::zero()
-    }
-
-    #[inline]
-    fn is_zero(&self) -> bool {
-        self.is_zero()
-    }
-
-    #[inline]
-    fn one() -> Mpq {
-        Mpq::one()
-    }
-
-    #[inline]
     fn from_i64(n: i64) -> Mpq {
         Mpq::from(n)
     }

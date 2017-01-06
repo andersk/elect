@@ -2,7 +2,6 @@
 extern crate gmp;
 #[cfg(feature = "use-num-rational")]
 extern crate num_rational;
-#[cfg(feature = "use-num-rational")]
 extern crate num_traits;
 
 mod combination;

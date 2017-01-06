@@ -1,3 +1,4 @@
+use num_traits::{One, Zero};
 use std::cmp::Ordering;
 use std::ops::{Add, Sub, Mul, Div};
 use std::str::FromStr;
@@ -72,9 +73,7 @@ derive_ops!(Sub, sub);
 derive_ops!(Mul, mul);
 derive_ops!(Div, div);
 
-impl Weight for HwFloat {
-    type FromStrErr = <f64 as FromStr>::Err;
-
+impl Zero for HwFloat {
     #[inline]
     fn zero() -> HwFloat {
         HwFloat(0.0)
@@ -84,11 +83,17 @@ impl Weight for HwFloat {
     fn is_zero(&self) -> bool {
         self.0 == 0.0
     }
+}
 
+impl One for HwFloat {
     #[inline]
     fn one() -> HwFloat {
         HwFloat(1.0)
     }
+}
+
+impl Weight for HwFloat {
+    type FromStrErr = <f64 as FromStr>::Err;
 
     #[inline]
     fn from_i64(n: i64) -> HwFloat {
