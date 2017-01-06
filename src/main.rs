@@ -81,7 +81,7 @@ fn main_result() -> Result<(), String> {
 }
 
 fn run<W>(calc: &Calc, program: &str, num_seats: usize, filenames: &[String]) -> Result<(), String>
-    where W: FromStr + Weight,
+    where W: Display + FromStr + Weight,
           W::Err: Display,
           for<'w> &'w W: WeightOps<W>
 {
@@ -102,10 +102,10 @@ fn run<W>(calc: &Calc, program: &str, num_seats: usize, filenames: &[String]) ->
     println!("");
 
     let total_weight = bp.ballots.iter().fold(W::zero(), |acc, &(_, ref w)| acc + w);
-    println!("Ballots ({}):", total_weight.to_string());
+    println!("Ballots ({}):", total_weight);
     for &(ref groups, ref w) in &bp.ballots {
         println!("  {}: {}",
-                 w.to_string(),
+                 w,
                  groups.iter()
                      .map(|group| {
                          group.iter()

@@ -32,7 +32,6 @@ impl<Base, T> WeightOps<Base> for T
 
 pub trait Weight: Clone + Ord + WeightOps<Self> + Zero + One + fmt::Debug {
     fn from_i64(i64) -> Self;
-    fn to_string(&self) -> String;
 
     #[inline]
     fn fuzzy_eq(&self, other: &Self) -> bool {

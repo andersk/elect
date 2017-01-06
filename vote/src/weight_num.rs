@@ -7,9 +7,4 @@ impl Weight for BigRational {
     fn from_i64(n: i64) -> BigRational {
         BigRational::from_integer(n.into())
     }
-
-    #[inline]
-    fn to_string(&self) -> String {
-        ToString::to_string(self)
-    }
 }

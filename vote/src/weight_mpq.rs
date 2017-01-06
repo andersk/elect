@@ -7,9 +7,4 @@ impl Weight for Mpq {
     fn from_i64(n: i64) -> Mpq {
         Mpq::from(n)
     }
-
-    #[inline]
-    fn to_string(&self) -> String {
-        format!("{:?}", self)
-    }
 }

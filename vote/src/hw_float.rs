@@ -1,5 +1,6 @@
 use num_traits::{One, Zero};
 use std::cmp::Ordering;
+use std::fmt;
 use std::ops::{Add, Sub, Mul, Div};
 use std::str::FromStr;
 
@@ -101,15 +102,17 @@ impl FromStr for HwFloat {
     }
 }
 
+impl fmt::Display for HwFloat {
+    #[inline]
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        self.0.fmt(f)
+    }
+}
+
 impl Weight for HwFloat {
     #[inline]
     fn from_i64(n: i64) -> HwFloat {
         HwFloat(n as f64)
-    }
-
-    #[inline]
-    fn to_string(&self) -> String {
-        ToString::to_string(&self.0)
     }
 
     #[inline]
