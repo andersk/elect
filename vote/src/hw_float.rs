@@ -25,7 +25,7 @@ impl PartialOrd for HwFloat {
 
 impl Ord for HwFloat {
     fn cmp(&self, other: &HwFloat) -> Ordering {
-        self.partial_cmp(other).unwrap_or(Ordering::Equal)
+        self.partial_cmp(other).unwrap()
     }
 }
 
