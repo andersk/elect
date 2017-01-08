@@ -114,7 +114,7 @@ pub fn parse_ballot_files<W, Str>(filenames: &[Str]) -> Result<BallotParser<W>, 
           Str: Borrow<str>
 {
     let mut bp = BallotParser::new();
-    for filename in filenames.iter() {
+    for filename in filenames {
         bp.add_ballot_file(filename.borrow())?;
     }
     Ok(bp)

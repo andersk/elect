@@ -33,7 +33,7 @@ fn preferred<Group>(num_seats: usize,
             }
         }
     }
-    for o in v.iter_mut() {
+    for o in &mut *v {
         if *o == Ordering::Less {
             *o = Ordering::Equal;
         }

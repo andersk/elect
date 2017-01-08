@@ -120,7 +120,7 @@ fn run<W>(calc: &Calc, program: &str, num_seats: usize, filenames: &[String]) ->
 
     let mut winners = schulze_stv(bp.candidates.len(), num_seats, &bp.ballots);
 
-    for set in winners.iter_mut() {
+    for set in &mut *winners {
         set.sort_by(|&a, &b| bp.candidates[a].cmp(&bp.candidates[b]));
     }
     winners.sort_by(|a, b| {
@@ -133,7 +133,7 @@ fn run<W>(calc: &Calc, program: &str, num_seats: usize, filenames: &[String]) ->
     } else {
         println!("Tied winner{}s:", set_suffix);
     }
-    for set in winners.iter() {
+    for set in &*winners {
         println!("  {}",
                  set.iter().map(|&c| &bp.candidates[c][..]).collect::<Vec<_>>().join(", "));
     }
