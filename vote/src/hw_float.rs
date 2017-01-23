@@ -11,7 +11,7 @@ pub struct HwFloat(f64);
 
 impl PartialEq for HwFloat {
     fn eq(&self, other: &HwFloat) -> bool {
-        &self.0 == &other.0
+        self.0 == other.0
     }
 }
 

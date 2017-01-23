@@ -74,7 +74,7 @@ impl<W: FromStr + Weight> BallotParser<W>
 
         let (w, groups) = match line.find(':') {
             Some(i) => {
-                let w = W::from_str(&line[..i].trim())
+                let w = W::from_str(line[..i].trim())
                     .map_err(|e| format!("cannot parse ballot weight: {}", e))?;
                 if w <= W::zero() {
                     Err("non-positive ballot weight")?
