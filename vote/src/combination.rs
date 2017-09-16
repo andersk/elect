@@ -32,7 +32,7 @@ pub fn decode_combination(binomial: &[Box<[usize]>], k: usize, m: usize) -> Box<
         mm -= binomial[c[i]][i + 1];
         n = c[i];
     }
-    debug_assert!(mm == 0);
+    debug_assert_eq!(mm, 0);
     c
 }
 
