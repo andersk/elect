@@ -3,7 +3,7 @@ use std::collections::hash_map::{Entry, HashMap};
 use std::collections::HashSet;
 use std::fmt::Display;
 use std::fs::File;
-use std::io::{BufRead, BufReader, Read, stdin};
+use std::io::{stdin, BufRead, BufReader, Read};
 use std::result::Result;
 use std::str::FromStr;
 use vote::traits::Weight;
@@ -15,7 +15,8 @@ pub struct BallotParser<W> {
 }
 
 impl<W: FromStr + Weight> BallotParser<W>
-    where W::Err: Display
+where
+    W::Err: Display,
 {
     fn new() -> BallotParser<W> {
         BallotParser {
@@ -46,24 +47,32 @@ impl<W: FromStr + Weight> BallotParser<W>
         }
     }
 
-    fn parse_group(&mut self,
-                   group: &str,
-                   used: &mut HashSet<usize>)
-                   -> Result<Box<[usize]>, String> {
-        Ok(group.split('=')
-            .map(|name| self.parse_candidate(name, used))
-            .collect::<Result<Vec<_>, _>>()?
-            .into_boxed_slice())
+    fn parse_group(
+        &mut self,
+        group: &str,
+        used: &mut HashSet<usize>,
+    ) -> Result<Box<[usize]>, String> {
+        Ok(
+            group
+                .split('=')
+                .map(|name| self.parse_candidate(name, used))
+                .collect::<Result<Vec<_>, _>>()?
+                .into_boxed_slice(),
+        )
     }
 
-    fn parse_groups(&mut self,
-                    groups: &str,
-                    used: &mut HashSet<usize>)
-                    -> Result<Box<[Box<[usize]>]>, String> {
-        Ok(groups.split('>')
-            .map(|group| self.parse_group(group, used))
-            .collect::<Result<Vec<_>, _>>()?
-            .into_boxed_slice())
+    fn parse_groups(
+        &mut self,
+        groups: &str,
+        used: &mut HashSet<usize>,
+    ) -> Result<Box<[Box<[usize]>]>, String> {
+        Ok(
+            groups
+                .split('>')
+                .map(|group| self.parse_group(group, used))
+                .collect::<Result<Vec<_>, _>>()?
+                .into_boxed_slice(),
+        )
     }
 
     fn add_ballot(&mut self, line: &str) -> Result<(), String> {
@@ -101,17 +110,21 @@ impl<W: FromStr + Weight> BallotParser<W>
         let file: Box<Read> = if filename == "-" {
             Box::new(stdin())
         } else {
-            Box::new(File::open(filename).map_err(|e| format!("error: {}: {}", filename, e))?)
+            Box::new(File::open(filename)
+                .map_err(|e| format!("error: {}: {}", filename, e))?)
         };
         self.add_ballots(BufReader::new(file))
-            .map_err(|(lineno, e)| format!("{}:{}: error: {}", filename, lineno + 1, e))
+            .map_err(|(lineno, e)| {
+                format!("{}:{}: error: {}", filename, lineno + 1, e)
+            })
     }
 }
 
 pub fn parse_ballot_files<W, Str>(filenames: &[Str]) -> Result<BallotParser<W>, String>
-    where W: FromStr + Weight,
-          W::Err: Display,
-          Str: Borrow<str>
+where
+    W: FromStr + Weight,
+    W::Err: Display,
+    Str: Borrow<str>,
 {
     let mut bp = BallotParser::new();
     for filename in filenames {

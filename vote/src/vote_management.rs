@@ -19,11 +19,13 @@ struct CandidateState {
 }
 
 pub fn strength<W, Ballot>(num_seats: usize, ballots: &[(Ballot, W)]) -> W
-    where W: Weight,
-          for<'w> &'w W: WeightOps<W>,
-          Ballot: Borrow<[usize]>
+where
+    W: Weight,
+    for<'w> &'w W: WeightOps<W>,
+    Ballot: Borrow<[usize]>,
 {
-    let ballot_candidates = &mut ballots.iter()
+    let ballot_candidates = &mut ballots
+        .iter()
         .map(|&(ref cs, _)| Vec::with_capacity(1 + cs.borrow().len()))
         .collect::<Vec<_>>()[..];
     let candidate_ballots = &mut vec![Vec::new(); num_seats][..];
@@ -34,7 +36,8 @@ pub fn strength<W, Ballot>(num_seats: usize, ballots: &[(Ballot, W)]) -> W
             candidate_ballots[c].push((b, i + 1));
         }
     }
-    let ballot_states = &mut ballots.iter()
+    let ballot_states = &mut ballots
+        .iter()
         .map(|&(ref cs, ref w)| {
             let mut edge_flow = vec![W::zero(); 1 + cs.borrow().len()].into_boxed_slice();
             edge_flow[0] = w.clone();
@@ -46,11 +49,14 @@ pub fn strength<W, Ballot>(num_seats: usize, ballots: &[(Ballot, W)]) -> W
             }
         })
         .collect::<Vec<_>>()[..];
-    let candidate_states = &mut vec![CandidateState {
-        level: !0,
-        prev: !0,
-        count: 0,
-    }; num_seats][..];
+    let candidate_states = &mut vec![
+        CandidateState {
+            level: !0,
+            prev: !0,
+            count: 0,
+        };
+        num_seats
+    ][..];
 
     let mut total_flow = W::zero();
     let mut queue = VecDeque::with_capacity(ballots.len());
@@ -84,7 +90,8 @@ pub fn strength<W, Ballot>(num_seats: usize, ballots: &[(Ballot, W)]) -> W
                         }
                         for &(b1, i1) in &candidate_ballots[c] {
                             if ballot_states[b1].edge_flow[i1].is_zero() ||
-                               ballot_states[b1].prev != !0 {
+                                ballot_states[b1].prev != !0
+                            {
                                 continue;
                             }
                             ballot_states[b1].level = level + 2;
@@ -114,13 +121,18 @@ pub fn strength<W, Ballot>(num_seats: usize, ballots: &[(Ballot, W)]) -> W
             debug_assert_eq!(sunk, num_seats as i32);
 
             let (flow, flow_times_count, count) = {
-                let (flow, flow_times_count, count) = found.iter()
+                let (flow, flow_times_count, count) = found
+                    .iter()
                     .map(|&c| {
                         let j = candidate_states[c].prev;
                         let (b, _) = candidate_ballots[c][j];
                         let flow_times_count = &ballot_states[b].edge_flow[ballot_states[b].prev];
                         let count = ballot_states[b].count;
-                        (flow_times_count / W::from_i64(i64::from(count)), flow_times_count, count)
+                        (
+                            flow_times_count / W::from_i64(i64::from(count)),
+                            flow_times_count,
+                            count,
+                        )
                     })
                     .min()
                     .unwrap();
@@ -138,7 +150,7 @@ pub fn strength<W, Ballot>(num_seats: usize, ballots: &[(Ballot, W)]) -> W
                         *edge_flow = &*edge_flow + &flow_times_count;
                     } else {
                         *edge_flow = &*edge_flow +
-                                     &flow * W::from_i64(i64::from(candidate_states[c].count) + 1);
+                            &flow * W::from_i64(i64::from(candidate_states[c].count) + 1);
                     }
                 }
                 if ballot_states[b].count != 0 {
@@ -146,8 +158,8 @@ pub fn strength<W, Ballot>(num_seats: usize, ballots: &[(Ballot, W)]) -> W
                     if ballot_states[b].count == count {
                         *edge_flow = &*edge_flow - &flow_times_count;
                     } else {
-                        *edge_flow = &*edge_flow -
-                                     &flow * W::from_i64(i64::from(ballot_states[b].count));
+                        *edge_flow =
+                            &*edge_flow - &flow * W::from_i64(i64::from(ballot_states[b].count));
                     }
                     ballot_states[b].count = 0;
                 }
@@ -165,11 +177,12 @@ pub fn strength<W, Ballot>(num_seats: usize, ballots: &[(Ballot, W)]) -> W
                                 .find(|&i1| {
                                     let (c1, _) = ballot_candidates[b][i1];
                                     !ballot_states[b].edge_flow[i1].is_zero() &&
-                                    (i1 == 0 || candidate_states[c1].level < ballot_states[b].level)
+                                        (i1 == 0 ||
+                                            candidate_states[c1].level < ballot_states[b].level)
                                 })
                                 .unwrap_or(!0);
                             ballot_states[b].prev != !0 &&
-                            ballot_states[b].level < candidate_states[c].level
+                                ballot_states[b].level < candidate_states[c].level
                         } else {
                             false
                         }
@@ -223,22 +236,24 @@ mod tests {
     #[test]
     fn test_strength_3() {
         // Schulze’s calcul02.pdf
-        let ballots: &[(&[usize], Mpq)] = &[(&[0, 1, 2, 3], Q(36_597383) / Q(1_000000)),
-                                            (&[0, 1, 2], Q(5_481150) / Q(1_000000)),
-                                            (&[0, 1, 3], Q(13_279131) / Q(1_000000)),
-                                            (&[0, 1], Q(4_859413) / Q(1_000000)),
-                                            (&[0, 2, 3], Q(35_425375) / Q(1_000000)),
-                                            (&[0, 2], Q(5_490934) / Q(1_000000)),
-                                            (&[0, 3], Q(22_855333) / Q(1_000000)),
-                                            (&[0], Q(19_835570) / Q(1_000000)),
-                                            (&[1, 2, 3], Q(22_928716) / Q(1_000000)),
-                                            (&[1, 2], Q(5_538309) / Q(1_000000)),
-                                            (&[1, 3], Q(13_130227) / Q(1_000000)),
-                                            (&[1], Q(6_056291) / Q(1_000000)),
-                                            (&[2, 3], Q(23_992772) / Q(1_000000)),
-                                            (&[2], Q(16_699207) / Q(1_000000)),
-                                            (&[3], Q(98_165759) / Q(1_000000)),
-                                            (&[], Q(129_664430) / Q(1_000000))];
+        let ballots: &[(&[usize], Mpq)] = &[
+            (&[0, 1, 2, 3], Q(36_597383) / Q(1_000000)),
+            (&[0, 1, 2], Q(5_481150) / Q(1_000000)),
+            (&[0, 1, 3], Q(13_279131) / Q(1_000000)),
+            (&[0, 1], Q(4_859413) / Q(1_000000)),
+            (&[0, 2, 3], Q(35_425375) / Q(1_000000)),
+            (&[0, 2], Q(5_490934) / Q(1_000000)),
+            (&[0, 3], Q(22_855333) / Q(1_000000)),
+            (&[0], Q(19_835570) / Q(1_000000)),
+            (&[1, 2, 3], Q(22_928716) / Q(1_000000)),
+            (&[1, 2], Q(5_538309) / Q(1_000000)),
+            (&[1, 3], Q(13_130227) / Q(1_000000)),
+            (&[1], Q(6_056291) / Q(1_000000)),
+            (&[2, 3], Q(23_992772) / Q(1_000000)),
+            (&[2], Q(16_699207) / Q(1_000000)),
+            (&[3], Q(98_165759) / Q(1_000000)),
+            (&[], Q(129_664430) / Q(1_000000)),
+        ];
         assert_eq!(strength(4, ballots), Q(77_389937) / Q(1_000000));
     }
 }

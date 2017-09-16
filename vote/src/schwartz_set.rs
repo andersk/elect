@@ -16,7 +16,8 @@ struct State<'a> {
 }
 
 fn search<Defeaters>(defeaters: &[Defeaters], state: &mut State, c: usize) -> Option<usize>
-    where Defeaters: Borrow<[usize]>
+where
+    Defeaters: Borrow<[usize]>,
 {
     let mut lowlink = state.stack.len();
     state.nodes[c] = Node::OnStack(lowlink);
@@ -24,11 +25,9 @@ fn search<Defeaters>(defeaters: &[Defeaters], state: &mut State, c: usize) -> Op
 
     for &c1 in defeaters[c].borrow() {
         match state.nodes[c1] {
-            Node::Unvisited => {
-                if let Some(lowlink1) = search(defeaters, state, c1) {
-                    lowlink = min(lowlink, lowlink1);
-                }
-            }
+            Node::Unvisited => if let Some(lowlink1) = search(defeaters, state, c1) {
+                lowlink = min(lowlink, lowlink1);
+            },
             Node::OnStack(index1) => {
                 lowlink = min(lowlink, index1);
             }
@@ -56,7 +55,8 @@ fn search<Defeaters>(defeaters: &[Defeaters], state: &mut State, c: usize) -> Op
 }
 
 pub fn schwartz_set<Defeaters>(candidates: &[usize], defeaters: &[Defeaters]) -> Box<[usize]>
-    where Defeaters: Borrow<[usize]>
+where
+    Defeaters: Borrow<[usize]>,
 {
     let mut state = State {
         nodes: &mut vec![Node::Unvisited; defeaters.len()][..],

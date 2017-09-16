@@ -2,10 +2,12 @@ use std::borrow::Borrow;
 use std::vec::Vec;
 use schwartz_set::schwartz_set;
 
-pub fn schulze_graph<DefeatGroup>(num_candidates: usize,
-                                  defeat_groups: &[DefeatGroup])
-                                  -> Box<[usize]>
-    where DefeatGroup: Borrow<[(usize, usize)]>
+pub fn schulze_graph<DefeatGroup>(
+    num_candidates: usize,
+    defeat_groups: &[DefeatGroup],
+) -> Box<[usize]>
+where
+    DefeatGroup: Borrow<[(usize, usize)]>,
 {
     let defeaters = &mut vec![Vec::new(); num_candidates][..];
     for defeat_group in defeat_groups {
@@ -35,9 +37,18 @@ mod tests {
     #[test]
     fn test_schulze_1() {
         // Wikipedia
-        let defeat_groups: &[&[(usize, usize)]] = &[&[(1, 3)], &[(4, 3)], &[(0, 3)], &[(2, 1)],
-                                                    &[(3, 2)], &[(4, 1)], &[(0, 2)], &[(1, 0)],
-                                                    &[(2, 4)], &[(4, 0)]];
+        let defeat_groups: &[&[(usize, usize)]] = &[
+            &[(1, 3)],
+            &[(4, 3)],
+            &[(0, 3)],
+            &[(2, 1)],
+            &[(3, 2)],
+            &[(4, 1)],
+            &[(0, 2)],
+            &[(1, 0)],
+            &[(2, 4)],
+            &[(4, 0)],
+        ];
         assert_eq!(*schulze_graph(5, defeat_groups), [4]);
     }
 }

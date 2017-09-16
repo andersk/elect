@@ -38,21 +38,23 @@ pub fn decode_combination(binomial: &[Box<[usize]>], k: usize, m: usize) -> Box<
 
 #[cfg(test)]
 mod tests {
-    use super::{make_binomial, encode_combination, decode_combination};
+    use super::{decode_combination, encode_combination, make_binomial};
 
     #[test]
     fn test_binomial() {
-        let expected: &[Box<[usize]>] = &[Box::new([1, 0, 0, 0, 0, 0]),
-                                          Box::new([1, 1, 0, 0, 0, 0]),
-                                          Box::new([1, 2, 1, 0, 0, 0]),
-                                          Box::new([1, 3, 3, 1, 0, 0]),
-                                          Box::new([1, 4, 6, 4, 1, 0]),
-                                          Box::new([1, 5, 10, 10, 5, 1]),
-                                          Box::new([1, 6, 15, 20, 15, 6]),
-                                          Box::new([1, 7, 21, 35, 35, 21]),
-                                          Box::new([1, 8, 28, 56, 70, 56]),
-                                          Box::new([1, 9, 36, 84, 126, 126]),
-                                          Box::new([1, 10, 45, 120, 210, 252])];
+        let expected: &[Box<[usize]>] = &[
+            Box::new([1, 0, 0, 0, 0, 0]),
+            Box::new([1, 1, 0, 0, 0, 0]),
+            Box::new([1, 2, 1, 0, 0, 0]),
+            Box::new([1, 3, 3, 1, 0, 0]),
+            Box::new([1, 4, 6, 4, 1, 0]),
+            Box::new([1, 5, 10, 10, 5, 1]),
+            Box::new([1, 6, 15, 20, 15, 6]),
+            Box::new([1, 7, 21, 35, 35, 21]),
+            Box::new([1, 8, 28, 56, 70, 56]),
+            Box::new([1, 9, 36, 84, 126, 126]),
+            Box::new([1, 10, 45, 120, 210, 252]),
+        ];
         assert_eq!(*make_binomial(10, 5), *expected);
     }
 

@@ -1,7 +1,7 @@
 use num_traits::{One, Zero};
 use std::cmp::Ordering;
 use std::fmt;
-use std::ops::{Add, Sub, Mul, Div};
+use std::ops::{Add, Div, Mul, Sub};
 use std::str::FromStr;
 
 use traits::Weight;
