@@ -120,7 +120,7 @@ pub fn strength<W, Ballot>(num_seats: usize, ballots: &[(Ballot, W)]) -> W
                         let (b, _) = candidate_ballots[c][j];
                         let flow_times_count = &ballot_states[b].edge_flow[ballot_states[b].prev];
                         let count = ballot_states[b].count;
-                        (flow_times_count / W::from_i64(count as i64), flow_times_count, count)
+                        (flow_times_count / W::from_i64(i64::from(count)), flow_times_count, count)
                     })
                     .min()
                     .unwrap();
@@ -138,7 +138,7 @@ pub fn strength<W, Ballot>(num_seats: usize, ballots: &[(Ballot, W)]) -> W
                         *edge_flow = &*edge_flow + &flow_times_count;
                     } else {
                         *edge_flow = &*edge_flow +
-                                     &flow * W::from_i64(candidate_states[c].count as i64 + 1);
+                                     &flow * W::from_i64(i64::from(candidate_states[c].count) + 1);
                     }
                 }
                 if ballot_states[b].count != 0 {
@@ -147,7 +147,7 @@ pub fn strength<W, Ballot>(num_seats: usize, ballots: &[(Ballot, W)]) -> W
                         *edge_flow = &*edge_flow - &flow_times_count;
                     } else {
                         *edge_flow = &*edge_flow -
-                                     &flow * W::from_i64(ballot_states[b].count as i64);
+                                     &flow * W::from_i64(i64::from(ballot_states[b].count));
                     }
                     ballot_states[b].count = 0;
                 }
